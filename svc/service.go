@@ -30,11 +30,11 @@ func New(thunk func()) Service {
 func (o *Service) Start() {
 	// implement single instance
 	o.stateLock.Lock()
+	defer o.stateLock.Unlock()
 	if o.state == RUNNING {
 		return
 	}
 	o.state = RUNNING
-	o.stateLock.Unlock()
 
 	if o.thunk == nil {
 		return
