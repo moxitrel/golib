@@ -1,8 +1,8 @@
 /*
 func NewApply(poolSize uint) Apply
-func (Apply) Start()
-func (Apply) Stop()
-func (Apply) Add(func())
+func (*Apply) Start()
+func (*Apply) Stop()
+func (*Apply) Add(func())
 */
 
 package svc
@@ -28,7 +28,7 @@ func NewApply(poolSize uint) (v Apply) {
 	return
 }
 
-func (o Apply) Add(thunk func()) {
+func (o *Apply) Add(thunk func()) {
 	if thunk == nil {
 		return
 	}
