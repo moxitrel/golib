@@ -1,14 +1,12 @@
 /*
 func New(func()) Service
-func (Service) Start()
-func (Service) Stop()
+func (*Service) Start()
+func (*Service) Stop()
 */
 
 package svc
 
-import (
-	"github.com/moxitrel/golib/contract"
-)
+import "sync"
 
 const (
 	STOPPED = iota
@@ -18,34 +16,40 @@ const (
 type Service struct {
 	thunk     func()
 	state     int
+	stateLock sync.Mutex
 }
 
 func New(thunk func()) Service {
-	contract.Assert(thunk != nil, "thunk: should not be nil")
 	return Service{
 		thunk:     thunk,
 		state:     STOPPED,
+		stateLock: sync.Mutex{},
 	}
 }
 
-func (o Service) Start() {
-	// single instance, not thread-safe
+func (o *Service) Start() {
+	// implement single instance
+	o.stateLock.Lock()
+	defer o.stateLock.Unlock()
 	if o.state == RUNNING {
 		return
 	}
 	o.state = RUNNING
 
-	go func() {
-		//defer recover()	// stop panic if occurred
-		o.loop()
-	}()
+	if o.thunk == nil {
+		return
+	}
+
+	//defer recover()	// stop panic if occurred
+	go o._loop()
 }
 
-func (o Service) Stop() {
+func (o *Service) Stop() {
 	o.state = STOPPED
 }
 
-func (o Service) loop() {
+// require: thunk != nil
+func (o *Service) _loop() {
 	for o.state == RUNNING {
 		o.thunk()
 	}

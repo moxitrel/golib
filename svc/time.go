@@ -22,14 +22,12 @@ type Task struct {
 
 type Time struct {
 	Service
-	//interval time.Duration
 	tasks    sets.Set
 	apply    Apply
 	ticker   *time.Ticker
 }
 
 func NewTime(accuracy time.Duration) (v *Time) {
-	//v.interval = accuracy
 	v.tasks = hashset.New()
 	v.apply = NewApply(TIME_APPLY_POOL_SIZE)
 	v.ticker = time.NewTicker(accuracy)
@@ -78,10 +76,5 @@ func (o *Time) At(future time.Time, do func()) *Task {
 		do()
 		o.Delete(task)
 	}
-
-	// ignore if schedule a past task
-	//if future.Before(time.Now()) {
-	//	o.Delete(task)
-	//}
 	return task
 }
