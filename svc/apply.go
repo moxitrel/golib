@@ -2,14 +2,13 @@
 func NewApply(poolSize uint) Apply
 func (*Apply) Start()
 func (*Apply) Stop()
-func (*Apply) Add(func())
+func (*Apply) Add(func())			: add new task
 */
-
 package svc
 
 type Apply struct {
-	Service
-	thunks chan func()	//should not be closed
+	*Service
+	thunks chan func() //should not be closed
 }
 
 func NewApply(poolSize uint) (v Apply) {
@@ -31,6 +30,8 @@ func NewApply(poolSize uint) (v Apply) {
 
 func (o *Apply) Stop() {
 	o.Service.Stop()
+
+	// quit from thunk if blocked by receiving
 	if len(o.thunks) == 0 {
 		// parallel Stop() without block
 		select {
