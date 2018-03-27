@@ -1,9 +1,8 @@
 /*
-func New(func()) Service
-func (*Service) Start()
-func (*Service) Stop()
+func New(func()) *Service
+func (*Service) Start()		: run service in background.
+func (*Service) Stop()		: signal service to stop.
 */
-
 package svc
 
 import "sync"
@@ -19,14 +18,15 @@ type Service struct {
 	stateLock sync.Mutex
 }
 
-func New(thunk func()) Service {
-	return Service{
+func New(thunk func()) *Service {
+	return &Service{
 		thunk:     thunk,
 		state:     STOPPED,
 		stateLock: sync.Mutex{},
 	}
 }
 
+// Run the service in background.
 func (o *Service) Start() {
 	// implement single instance
 	o.stateLock.Lock()
@@ -44,11 +44,13 @@ func (o *Service) Start() {
 	go o._loop()
 }
 
+// Signal the service to stop.
+// Service stopped after the thunk done.
 func (o *Service) Stop() {
 	o.state = STOPPED
 }
 
-// require: thunk != nil
+// require thunk != nil
 func (o *Service) _loop() {
 	for o.state == RUNNING {
 		o.thunk()

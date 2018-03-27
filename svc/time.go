@@ -1,12 +1,11 @@
 /*
 func NewTime(accuracy time.Duration) *Time
 func (*Time) Add   (cond func() bool, do func()) *Task
-func (*Time) Delete(task *Task)
+func (*Time) Delete(*Task)
 func (*Time) Start ()
 func (*Time) Stop  ()
-func (*Time) At    (future time.Time, do func()) *Task
- */
-
+func (*Time) At    (time.Time, func()) *Task
+*/
 package svc
 
 import (
@@ -16,24 +15,22 @@ import (
 )
 
 type Task struct {
-	cond func() bool //shouldn't be blocked
+	cond func() bool //should not be blocked
 	do   func()
 }
 
 type Time struct {
-	Service
-	tasks    sets.Set
-	apply    Apply
-	ticker   *time.Ticker
+	*Service
+	tasks sets.Set
+	apply Apply
 }
 
 func NewTime(accuracy time.Duration) (v *Time) {
 	v.tasks = hashset.New()
 	v.apply = NewApply(TIME_APPLY_POOL_SIZE)
-	v.ticker = time.NewTicker(accuracy)
 	v.Service = New(func() {
-		//time.Sleep(v.interval - time.Duration(time.Now().UnixNano())%v.interval)
-		<-v.ticker.C
+		now := time.Now()
+		time.Sleep(now.Truncate(accuracy).Add(accuracy).Sub(now) % accuracy)
 		for _, taskAny := range v.tasks.Values() {
 			task, _ := taskAny.(*Task)
 			if task.cond() == true {
