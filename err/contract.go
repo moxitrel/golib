@@ -1,10 +1,13 @@
 package err
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 func Require(ok bool, format string, args ...interface{}) {
 	if !ok {
-		panic(fmt.Sprintf(format, args...))
+		panic(errors.New(fmt.Sprintf(format, args...)))
 	}
 }
 

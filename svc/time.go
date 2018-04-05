@@ -15,7 +15,7 @@ import (
 )
 
 type Task struct {
-	cond func() bool //should not be blocked
+	cond func() bool
 	do   func()
 }
 
@@ -33,9 +33,11 @@ func NewTime(accuracy time.Duration) (v *Time) {
 		time.Sleep(now.Truncate(accuracy).Add(accuracy).Sub(now) % accuracy)
 		for _, taskAny := range v.tasks.Values() {
 			task, _ := taskAny.(*Task)
-			if task.cond() == true {
-				v.apply.Add(task.do)
-			}
+			v.apply.Add(func() {
+				if task.cond() == true {
+					task.do()
+				}
+			})
 		}
 	})
 	return
