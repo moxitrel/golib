@@ -4,7 +4,9 @@ func (*Time) Add   (cond func() bool, do func()) *Task
 func (*Time) Delete(*Task)
 func (*Time) Start ()
 func (*Time) Stop  ()
-func (*Time) At    (time.Time, func()) *Task
+
+func (*Time) At    (time.Time    , func()) *Task
+func (*Time) Loop  (time.Duration, func()) *Task
 */
 package svc
 
@@ -21,18 +23,21 @@ type Task struct {
 
 type Time struct {
 	*Service
+	accuracy time.Duration
 	tasks sets.Set
 	apply Apply
 }
 
 func NewTime(accuracy time.Duration) (v *Time) {
+	v = new(Time)
+	v.accuracy = accuracy
 	v.tasks = hashset.New()
 	v.apply = NewApply(TIME_APPLY_POOL_SIZE)
 	v.Service = New(func() {
 		now := time.Now()
 		time.Sleep(now.Truncate(accuracy).Add(accuracy).Sub(now) % accuracy)
 		for _, taskAny := range v.tasks.Values() {
-			task, _ := taskAny.(*Task)
+			task := taskAny.(*Task)
 			v.apply.Add(func() {
 				if task.cond() == true {
 					task.do()
@@ -43,12 +48,12 @@ func NewTime(accuracy time.Duration) (v *Time) {
 	return
 }
 
-func (o *Time) Add(cond func() bool, do func()) *Task {
-	task := &Task{cond, do}
+func (o *Time) Add(cond func() bool, do func()) (v *Task) {
+	v = &Task{cond, do}
 	if cond != nil && do != nil {
-		o.tasks.Add(task)
+		o.tasks.Add(v)
 	}
-	return task
+	return
 }
 
 func (o *Time) Delete(task *Task) {
@@ -67,13 +72,27 @@ func (o *Time) Stop() {
 
 // Run do() at future.
 // If future is before now, run immediately
-func (o *Time) At(future time.Time, do func()) *Task {
-	task := o.Add(
-		func() bool { return time.Now().After(future) },
+func (o *Time) At(future time.Time, do func()) (v *Task) {
+	v = o.Add(
+		func() bool { return !time.Now().Before(future) },
 		do)
-	task.do = func() {
+	v.do = func() {
 		do()
-		o.Delete(task)
+		o.Delete(v)
 	}
-	return task
+	return
+}
+
+// Run do() every interval ns
+func (o *Time) Loop(interval time.Duration, do func()) *Task {
+	tnext := time.Now().Truncate(interval)
+	return o.Add(func() bool {
+		now := time.Now()
+		if now.Before(tnext) {
+			return false
+		} else {
+			tnext = now.Truncate(interval).Add(interval)
+			return true
+		}
+	}, do)
 }
