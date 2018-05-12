@@ -1,7 +1,7 @@
 /*
-func New(func()) *Service
-func (*Service) Start()		: run service in background.
-func (*Service) Stop()		: signal service to stop.
+New (f & (:)): 	"Loop call f()."
+	Start: 		"Loop in background."
+	Stop : 		"Signal to stop."
 */
 package svc
 
@@ -22,7 +22,7 @@ func New(thunk func()) *Service {
 	return &Service{
 		thunk:     thunk,
 		state:     STOPPED,
-		stateLock: sync.Mutex{},
+		stateLock: *new(sync.Mutex),
 	}
 }
 
@@ -30,28 +30,28 @@ func New(thunk func()) *Service {
 func (o *Service) Start() {
 	// implement single instance
 	o.stateLock.Lock()
-	defer o.stateLock.Unlock()
 	if o.state == RUNNING {
 		return
 	}
 	o.state = RUNNING
+	o.stateLock.Unlock()
 
 	if o.thunk == nil {
 		return
 	}
 
 	//defer recover()	// stop panic if occurred
-	go o._loop()
+	go o.loop()
 }
 
 // Signal the service to stop.
-// Service stopped after the thunk done.
+// Service stopped after the thunk() done.
 func (o *Service) Stop() {
 	o.state = STOPPED
 }
 
 // require thunk != nil
-func (o *Service) _loop() {
+func (o *Service) loop() {
 	for o.state == RUNNING {
 		o.thunk()
 	}

@@ -22,18 +22,19 @@ type Task struct {
 }
 
 type Time struct {
-	*Service
+	Service
 	accuracy time.Duration
 	tasks sets.Set
 	apply Apply
 }
 
 func NewTime(accuracy time.Duration) (v *Time) {
-	v = new(Time)
-	v.accuracy = accuracy
-	v.tasks = hashset.New()
-	v.apply = NewApply(TIME_APPLY_POOL_SIZE)
-	v.Service = New(func() {
+	v = &Time{
+		accuracy: accuracy,
+		tasks: hashset.New(),
+		apply: *NewApply(),
+	}
+	v.Service = *New(func() {
 		now := time.Now()
 		time.Sleep(now.Truncate(accuracy).Add(accuracy).Sub(now) % accuracy)
 		for _, taskAny := range v.tasks.Values() {
