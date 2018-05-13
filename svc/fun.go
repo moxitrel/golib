@@ -1,13 +1,11 @@
 /*
 
-func(   ): no  arg, use Service
-func(...): has arg, use Fun
+NewFun (f & ([Any]:)): "finish f(Any ...) added by Call()"
+	Call Any ...	 : "run f(Any ...) once"
+	Start			 :
+	Stop 			 :
 
 *** e.g.
-
-func f(x T) {
-	...
-}
 
 type F struct {
 	Fun
@@ -15,14 +13,15 @@ type F struct {
 
 func NewF() (v *F) {
 	v = &F{
-		Fun: *NewFun(func(x interface{}) {
-			f(x.(T))
+		Fun: *NewFun(func(argv []interface{}) {
+			x1 := argv[0].(T)	//1. convert type
+			f(x)				//2. do the things
 		}),
 	}
 	return
 }
 
-func (o *PrintBytes) Call(x T) {
+func (o *F) Call(x T) {
 	o.Fun.Call(x)
 }
 
@@ -31,21 +30,53 @@ package svc
 
 type Fun struct {
 	Service
-	args chan interface{}
+	argvs chan []interface{} //a service usually has a buffer
+	//stopRead chan struct{}		//signal <-argvs to quit if blocked
 }
 
-func NewFun(f func(interface{})) (v *Fun) {
+// f   : 1. convert type; 2. do the things
+// argv: passed from Call()
+func NewFun(f func(argv []interface{})) (v *Fun) {
 	v = &Fun{
-		args: make(chan interface{}, 1024), //todo: specify 1024 buffer size
+		argvs: make(chan []interface{}, 100*10000), //todo: specify buffer size
 	}
 
 	v.Service = *New(func() {
-		arg := <-v.args
-		f(arg)
+		//select {
+		//case argv := <-v.argvs:
+		//	f(argv)
+		//case <-v.stopRead:
+		//	//nop
+		//}
+		argv := <-v.argvs
+		f(argv)
 	})
 	return
 }
 
-func (o *Fun) Call(arg interface{}) {
-	o.args <- arg
+func (o *Fun) Call(argv ...interface{}) {
+	o.argvs <- argv
 }
+
+//func (o *Fun) Start() {
+//	// clear stopRead
+//	select {
+//	case <-o.stopRead:
+//		//nop
+//	default:
+//		//nop
+//	}
+//
+//	o.Service.Stop()
+//}
+//
+//func (o *Fun) Stop() {
+//	select {
+//	case o.stopRead <- struct{}{}:
+//		//nop
+//	default:
+//		//nop
+//	}
+//
+//	o.Service.Stop()
+//}

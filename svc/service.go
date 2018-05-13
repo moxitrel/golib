@@ -1,5 +1,5 @@
 /*
-New (f & (:)): 	"Loop call f()."
+New (f & (:)): 	"Loop f()."
 	Start: 		"Loop in background."
 	Stop : 		"Signal to stop."
 */

@@ -2,35 +2,40 @@ package svc
 
 import (
 	"testing"
-	"gitlab.com/clogwire/v4/log"
 	"time"
 )
 
-func printBytes(xs []byte) {
-	for _, c := range xs {
-		log.Info("%c", c)
-	}
+func nop(_ interface{}) {
+	//nop
 }
 
-type PrintBytes struct {
+type NopFun struct {
 	Fun
 }
 
-func NewParser() (v *PrintBytes) {
-	v = &PrintBytes{
-		Fun: *NewFun(func(x interface{}) {
-			printBytes(x.([]byte))
+func NewNopFunSvc() (v *NopFun) {
+	v = &NopFun{
+		Fun: *NewFun(func(argv []interface{}) {
+			x := argv[0]
+			nop(x)
 		}),
 	}
 	return
 }
-func (o *PrintBytes) Call(x []byte) {
+func (o *NopFun) Call(x interface{}) {
 	o.Fun.Call(x)
 }
-
+func (o *NopFun) Stop() {
+	for len(o.argvs) != 0 {
+		time.Sleep(time.Millisecond)
+	}
+	o.Fun.Stop()
+}
 func TestFun(t *testing.T) {
-	o := NewParser()
+	o := NewNopFunSvc()
+	for i := 0; i < cap(o.argvs); i++ {
+		o.Call(struct {}{})
+	}
 	o.Start()
-	o.Call([]byte("abcdefg"))
-	time.Sleep(time.Second)
+	defer o.Stop()
 }
