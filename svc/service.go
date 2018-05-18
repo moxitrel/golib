@@ -40,7 +40,7 @@ func (o *Service) Start() {
 		return
 	}
 
-	//defer recover()	// stop panic if occurred
+	//defer func() { recover() }()	// stop panic if occurred
 	go o.loop()
 }
 

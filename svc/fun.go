@@ -1,82 +1,81 @@
 /*
 
-NewFun (f & ([Any]:)): "finish f(Any ...) added by Call()"
-	Call Any ...	 : "run f(Any ...) once"
-	Start			 :
+NewFun (f & ([Any]:)): "finish f(Any) added by Call()"
+	Call any    	 : "run f(any) once"
 	Stop 			 :
 
 *** e.g.
 
-type F struct {
+// 1. define a new type derive Fun
+type T struct {
 	Fun
 }
 
-func NewF() (v *F) {
-	v = &F{
-		Fun: *NewFun(func(argv []interface{}) {
-			x1 := argv[0].(T)	//1. convert type
-			f(x)				//2. do the things
-		}),
+// 2. define construction
+func NewF() *T {
+	// 2.1. define a function with signature func(interface{})
+	func f(arg interface{}) {
+		x := arg.(ArgT)		//recover type first
+		...					//do the things
 	}
-	return
+
+	// 2.2. return
+	return &F{ NewFun(f), }
 }
 
-func (o *F) Call(x T) {
+// 3. override Call() with desired argument type
+func (o *T) Call(x ArgT) {
 	o.Fun.Call(x)
 }
 
 */
 package svc
 
+import (
+	"sync"
+	"fmt"
+	"errors"
+)
+
 type Fun struct {
-	Service
-	argvs chan []interface{} //a service usually has a buffer
-	//stopRead chan struct{}		//signal <-argvs to quit if blocked
+	fun       func(interface{})
+	args      chan interface{}
+	startOnce sync.Once
+	stopOnce  sync.Once
 }
 
-// f   : 1. convert type; 2. do the things
-// argv: passed from Call()
-func NewFun(f func(argv []interface{})) (v *Fun) {
-	v = &Fun{
-		argvs: make(chan []interface{}, 100*10000), //todo: specify buffer size
+// Return a started fun-service
+// fun: apply with arg passed from Call()
+func NewFun(fun func(arg interface{})) (v *Fun) {
+	if fun == nil {
+		panic(errors.New(fmt.Sprintf("fun = nil, want non nil")))
 	}
-
-	v.Service = *New(func() {
-		//select {
-		//case argv := <-v.argvs:
-		//	f(argv)
-		//case <-v.stopRead:
-		//	//nop
-		//}
-		argv := <-v.argvs
-		f(argv)
-	})
+	v = &Fun{
+		fun: fun,
+	}
+	v.Start()
 	return
 }
 
-func (o *Fun) Call(argv ...interface{}) {
-	o.argvs <- argv
+func (o *Fun) Call(arg interface{}) {
+	o.args <- arg
 }
 
-//func (o *Fun) Start() {
-//	// clear stopRead
-//	select {
-//	case <-o.stopRead:
-//		//nop
-//	default:
-//		//nop
-//	}
-//
-//	o.Service.Stop()
-//}
-//
-//func (o *Fun) Stop() {
-//	select {
-//	case o.stopRead <- struct{}{}:
-//		//nop
-//	default:
-//		//nop
-//	}
-//
-//	o.Service.Stop()
-//}
+func (o *Fun) Start() {
+	o.startOnce.Do(func(){
+		o.args = make(chan interface{}, FUN_BUFFER_SIZE)
+		o.stopOnce = sync.Once{}
+		go func(){
+			for arg := range o.args {
+				o.fun(arg)
+			}
+			o.startOnce = sync.Once{}
+		}()
+	})
+}
+
+func (o *Fun) Stop() {
+	o.stopOnce.Do(func() {
+		close(o.args)
+	})
+}

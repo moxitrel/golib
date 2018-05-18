@@ -14,8 +14,8 @@ type Thunk struct {
 
 func NewThunk() (v *Thunk) {
 	v = &Thunk{
-		*NewFun(func(argv []interface{}) {
-			thunk := argv[0].(func())
+		*NewFun(func(argv interface{}) {
+			thunk := argv.(func())
 			thunk()
 		}),
 	}

@@ -3,7 +3,8 @@ package svc
 import (
 	"testing"
 	"time"
-	"gitlab.com/clogwire/v4/log"
+	//"gitlab.com/clogwire/v4/log"
+	"fmt"
 )
 //
 //type StringMessager struct {
@@ -29,10 +30,10 @@ func TestMessager(t *testing.T) {
 
 	o.Register(*new(string), func(xAny interface{}) {
 		x := xAny.(string)
-		log.Info("%v", x)
+		fmt.Printf("%v\n", x)
 	})
 	o.Register(nil, func(xAny interface{}) {
-		log.Info("nil")
+		fmt.Printf("nil")
 	})
 
 	// send nil
