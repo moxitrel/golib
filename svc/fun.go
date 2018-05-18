@@ -1,8 +1,8 @@
 /*
 
-NewFun (f & ([Any]:)): "finish f(Any) added by Call()"
-	Call any    	 : "run f(any) once"
-	Stop 			 :
+NewFun f		: "finish f(Any) added by Call()"
+	Call arg	: "schedule f(arg)"
+	Stop 		:
 
 *** e.g.
 
@@ -14,13 +14,13 @@ type T struct {
 // 2. define construction
 func NewF() *T {
 	// 2.1. define a function with signature func(interface{})
-	func f(arg interface{}) {
+	f := func (arg interface{}) {
 		x := arg.(ArgT)		//recover type first
 		...					//do the things
 	}
 
 	// 2.2. return
-	return &F{ NewFun(f), }
+	return &F{ *NewFun(f) }
 }
 
 // 3. override Call() with desired argument type

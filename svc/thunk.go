@@ -1,8 +1,7 @@
 /*
 
 NewThunk    	    : "Finish f() one by one in background."
-	Add (f & (:))	: "add new task f()."
-	Start			:
+	Call thunk		: "schedule thunk()"
 	Stop 			:
 
 */
@@ -12,20 +11,17 @@ type Thunk struct {
 	Fun
 }
 
-func NewThunk() (v *Thunk) {
-	v = &Thunk{
-		*NewFun(func(argv interface{}) {
-			thunk := argv.(func())
-			thunk()
-		}),
+func NewThunk() *Thunk {
+	f := func(x interface{}) {
+		thunk := x.(func())
+		thunk()
 	}
-	return
+	return &Thunk{*NewFun(f)}
 }
 
-// Blocked if pool is full.
-func (o *Thunk) Add(thunk func()) {
+func (o *Thunk) Call(thunk func()) {
 	if thunk == nil {
 		return
 	}
-	o.Call(thunk)
+	o.Fun.Call(thunk)
 }
