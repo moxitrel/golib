@@ -9,8 +9,8 @@ func TestThunk(t *testing.T) {
 	o := NewThunk()
 	defer o.Stop()
 
-	o.Call(nil)
-	o.Call(func(){
+	o.Add(nil)
+	o.Add(func(){
 		t1 := time.Now()
 		t2 := time.Now()
 		t.Logf("%v", t2.Sub(t1))

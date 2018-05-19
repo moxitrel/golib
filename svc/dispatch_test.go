@@ -8,11 +8,11 @@ import (
 )
 //
 //type StringMessager struct {
-//	*Map
+//	*Dispatch
 //}
-//func StringMessagerOf(x *Map, f func(string)) (v *StringMessager) {
+//func StringMessagerOf(x *Dispatch, f func(string)) (v *StringMessager) {
 //	v = &StringMessager{
-//		Map: x,
+//		Dispatch: x,
 //	}
 //	v.Register(*new(string), func(x interface{}) {
 //		f(x.(string))
@@ -20,11 +20,11 @@ import (
 //	return v
 //}
 //func (o *StringMessager) AddMessage(x string) {
-//	o.Map.AddMessage(x)
+//	o.Dispatch.AddMessage(x)
 //}
 
 func TestMessager(t *testing.T) {
-	o := NewMap()
+	o := NewDispatch()
 	o.Start()
 	defer o.Stop()
 
@@ -33,14 +33,14 @@ func TestMessager(t *testing.T) {
 		fmt.Printf("%v\n", x)
 	})
 	o.Register(nil, func(xAny interface{}) {
-		fmt.Printf("nil")
+		fmt.Printf("nil\n")
 	})
 
 	// send nil
-	o.Call(nil)
+	o.Handle(nil)
 	// send no handler
-	o.Call("a")
-	o.Call(9)
+	o.Handle("a")
+	o.Handle(9)
 
 	time.Sleep(time.Second * 1)
 }

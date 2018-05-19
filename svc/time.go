@@ -39,7 +39,7 @@ func NewTime(accuracy time.Duration) (v *Time) {
 		time.Sleep(now.Truncate(accuracy).Add(accuracy).Sub(now) % accuracy)
 		for _, taskAny := range v.tasks.Values() {
 			task := taskAny.(*Task)
-			v.thunk.Call(func() {
+			v.thunk.Add(func() {
 				if task.cond() == true {
 					task.do()
 				}

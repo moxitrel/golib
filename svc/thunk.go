@@ -1,7 +1,7 @@
 /*
 
 NewThunk    	    : "Finish f() one by one in background."
-	Call thunk		: "schedule thunk()"
+	Add thunk		: "schedule thunk()"
 	Stop 			:
 
 */
@@ -19,7 +19,7 @@ func NewThunk() *Thunk {
 	return &Thunk{*NewFun(f)}
 }
 
-func (o *Thunk) Call(thunk func()) {
+func (o *Thunk) Add(thunk func()) {
 	if thunk == nil {
 		return
 	}
