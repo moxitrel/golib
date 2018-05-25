@@ -1,6 +1,6 @@
 /*
 
-NewDispatch:
+NewMessager:
 	Register   x cb:
 	Handle     x   : "sched cb(x)"
 
@@ -16,7 +16,7 @@ type Messager struct {
 	handlers map[reflect.Type]func(interface{})
 }
 
-func NewDispatch() (v *Messager) {
+func NewMessager() (v *Messager) {
 	v = &Messager{
 		handlers: make(map[reflect.Type]func(interface{})),
 	}

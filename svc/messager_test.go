@@ -25,7 +25,7 @@ import (
 //}
 
 func TestMessager(t *testing.T) {
-	o := NewDispatch()
+	o := NewMessager()
 	defer o.Stop()
 
 	o.Register("", func(xAny interface{}) {
