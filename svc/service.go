@@ -13,8 +13,8 @@ type Service struct {
 	state     int
 }
 
-func New(thunk func()) (v *Service) {
-	v = &Service{
+func New(thunk func()) (v Service) {
+	v = Service{
 		state: RUNNING,
 	}
 	go func() {

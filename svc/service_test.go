@@ -5,13 +5,28 @@ import (
 	"time"
 )
 
-func TestService(t *testing.T) {
+func TestService_New (t *testing.T) {
 	i := 0
-	defer func() {
-		t.Logf("i: %v", i)
-	}()
-	defer New(func() {
+	o := New(func() {
 		i ++
-	}).Stop()
+	})
+	defer o.Stop()
+
 	time.Sleep(time.Millisecond)
+	if i == 0 {
+		t.Errorf("i == 0, want !0")
+	} else {
+		t.Logf("i: %v", i)
+	}
+}
+
+func TestService_Stop(t *testing.T) {
+	o := New(func() {
+		time.Sleep(time.Millisecond)
+	})
+	o.Stop()
+
+	if o.state != STOPPED {
+		t.Errorf("o.state != STOPPED, want STOPPED")
+	}
 }

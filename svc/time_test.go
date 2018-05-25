@@ -13,7 +13,6 @@ func TestLoop(t *testing.T) {
 	var loopMax = 5
 
 	o := NewTime(accuracy)
-	o.Start()
 	defer o.Stop()
 
 	i := 0
@@ -49,7 +48,6 @@ func TestAtLoop(t *testing.T) {
 	var loopMax = 5
 
 	o := NewTime(accuracy)
-	o.Start()
 	defer o.Stop()
 
 	i := 0

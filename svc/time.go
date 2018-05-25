@@ -2,7 +2,6 @@
 func NewTime(accuracy time.Duration) *Time
 func (*Time) Add   (cond func() bool, do func()) *Task
 func (*Time) Delete(*Task)
-func (*Time) Start ()
 func (*Time) Stop  ()
 
 func (*Time) At    (time.Time    , func()) *Task
@@ -23,23 +22,23 @@ type Task struct {
 
 type Time struct {
 	Service
-	accuracy time.Duration
-	tasks    sets.Set
-	thunk    Thunk
+	accuracy     time.Duration
+	tasks        sets.Set
+	thunkService Thunk
 }
 
 func NewTime(accuracy time.Duration) (v *Time) {
 	v = &Time{
-		accuracy: accuracy,
-		tasks:    hashset.New(),
-		thunk:    *NewThunk(),
+		accuracy:     accuracy,
+		tasks:        hashset.New(),
+		thunkService: *NewThunk(),
 	}
-	v.Service = *New(func() {
+	v.Service = New(func() {
 		now := time.Now()
 		time.Sleep(now.Truncate(accuracy).Add(accuracy).Sub(now) % accuracy)
 		for _, taskAny := range v.tasks.Values() {
 			task := taskAny.(*Task)
-			v.thunk.Do(func() {
+			v.thunkService.Do(func() {
 				if task.cond() == true {
 					task.do()
 				}
@@ -61,12 +60,9 @@ func (o *Time) Delete(task *Task) {
 	o.tasks.Remove(task)
 }
 
-func (o *Time) Start() {
-}
-
 func (o *Time) Stop() {
 	o.Service.Stop()
-	o.thunk.Stop()
+	o.thunkService.Stop()
 }
 
 // Run do() at future.

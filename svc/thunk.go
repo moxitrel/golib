@@ -1,7 +1,7 @@
 /*
 
 NewThunk    	    :
-	Do thunk		: "sched thunk()"
+	Do thunk		: "sched thunkService()"
 	Stop 			: "stop the service"
 
 */
