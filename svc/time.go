@@ -62,7 +62,6 @@ func (o *Time) Delete(task *Task) {
 }
 
 func (o *Time) Start() {
-	o.thunk.Start()
 	o.Service.Start()
 }
 

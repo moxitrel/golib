@@ -2,7 +2,7 @@
 
 NewFun f		:
 	Call arg	: "sched f(arg)"
-	Stop 		:
+	Stop        : "stop the service"
 
 *** e.g.
 
@@ -38,9 +38,7 @@ import (
 )
 
 type Fun struct {
-	fun       func(interface{})
 	args      chan interface{}
-	startOnce sync.Once
 	stopOnce  sync.Once
 }
 
@@ -51,34 +49,23 @@ func NewFun(fun func(arg interface{})) (v *Fun) {
 		panic(errors.New(fmt.Sprintf("fun = nil, want non nil")))
 	}
 	v = &Fun{
-		fun: fun,
-		args: make(chan interface{}, FUN_BUFFER_SIZE),	//overwritten by Start()
-		startOnce: sync.Once{},
-		stopOnce: sync.Once{},							//overwritten by Start()
+		args: make(chan interface{}, FUN_BUFFER_SIZE),
+		stopOnce: sync.Once{},
 	}
-	v.Start()
+	go func(){
+		for arg := range v.args {
+			fun(arg)
+		}
+	}()
 	return
-}
-
-func (o *Fun) Call(arg interface{}) {
-	o.args <- arg
-}
-
-func (o *Fun) Start() {
-	o.startOnce.Do(func(){
-		o.args = make(chan interface{}, FUN_BUFFER_SIZE)
-		o.stopOnce = sync.Once{}
-		go func(){
-			for arg := range o.args {
-				o.fun(arg)
-			}
-			o.startOnce = sync.Once{}
-		}()
-	})
 }
 
 func (o *Fun) Stop() {
 	o.stopOnce.Do(func() {
 		close(o.args)
 	})
+}
+
+func (o *Fun) Call(arg interface{}) {
+	o.args <- arg
 }
