@@ -1,8 +1,8 @@
 /*
 
-NewThunk    	    : "Finish f() one by one in background."
-	Add thunk		: "schedule thunk()"
-	Stop 			:
+NewThunk    	    :
+	Do thunk		: "sched thunk()"
+	Stop 			: "stop the service"
 
 */
 package svc
@@ -19,7 +19,7 @@ func NewThunk() *Thunk {
 	return &Thunk{*NewFun(f)}
 }
 
-func (o *Thunk) Add(thunk func()) {
+func (o *Thunk) Do(thunk func()) {
 	if thunk == nil {
 		return
 	}
