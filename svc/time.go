@@ -62,7 +62,6 @@ func (o *Time) Delete(task *Task) {
 }
 
 func (o *Time) Start() {
-	o.Service.Start()
 }
 
 func (o *Time) Stop() {
