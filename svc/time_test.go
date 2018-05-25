@@ -1,10 +1,10 @@
 package svc
 
 import (
-	"testing"
-	"time"
 	"fmt"
 	"math/rand"
+	"testing"
+	"time"
 )
 
 func TestLoop(t *testing.T) {
@@ -51,7 +51,7 @@ func TestAtLoop(t *testing.T) {
 	defer o.Stop()
 
 	i := 0
-	o.At(time.Now().Truncate(10 * intvl).Add(5 * intvl), func() {
+	o.At(time.Now().Truncate(10*intvl).Add(5*intvl), func() {
 		o.Loop(accuracy, func() {
 			i++
 			fmt.Printf("%s\n", time.Now())

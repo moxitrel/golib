@@ -6,7 +6,7 @@ import (
 )
 
 func TestFun_Example(t *testing.T) {
-	o := NewFun(func(x interface{}){
+	o := NewFun(func(x interface{}) {
 		t.Logf("%v", x)
 	})
 	defer o.Stop()

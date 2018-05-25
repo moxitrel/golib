@@ -10,7 +10,7 @@ func TestThunk(t *testing.T) {
 	defer o.Stop()
 
 	o.Do(nil)
-	o.Do(func(){
+	o.Do(func() {
 		t1 := time.Now()
 		t2 := time.Now()
 		t.Logf("%v", t2.Sub(t1))

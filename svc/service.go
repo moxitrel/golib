@@ -10,12 +10,16 @@ const (
 )
 
 type Service struct {
-	state     int
+	state int
 }
 
 func New(thunk func()) (v Service) {
 	v = Service{
 		state: RUNNING,
+	}
+	if thunk == nil {
+		// todo: issue warning
+		return
 	}
 	go func() {
 		for v.state == RUNNING {

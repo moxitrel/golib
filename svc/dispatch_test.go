@@ -6,6 +6,7 @@ import (
 	//"gitlab.com/clogwire/v4/log"
 	"fmt"
 )
+
 //
 //type StringMessager struct {
 //	*Dispatch

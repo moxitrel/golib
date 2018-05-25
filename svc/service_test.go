@@ -5,10 +5,15 @@ import (
 	"time"
 )
 
-func TestService_New (t *testing.T) {
+func Test_NewWithNil(t *testing.T) {
+	o := New(nil)
+	o.Stop()
+}
+
+func TestService_New(t *testing.T) {
 	i := 0
 	o := New(func() {
-		i ++
+		i++
 	})
 	defer o.Stop()
 

@@ -33,28 +33,30 @@ package svc
 
 import (
 	"sync"
-	"fmt"
-	"errors"
 )
 
 type Fun struct {
-	args      chan interface{}
-	stopOnce  sync.Once
+	args     chan interface{}
+	stopOnce sync.Once
 }
 
 // Return a started fun-service
 // fun: apply with arg passed from Call()
 func NewFun(fun func(arg interface{})) (v *Fun) {
-	if fun == nil {
-		panic(errors.New(fmt.Sprintf("fun = nil, want non nil")))
-	}
 	v = &Fun{
-		args: make(chan interface{}, FUN_BUFFER_SIZE),
+		args:     make(chan interface{}, FUN_BUFFER_SIZE),
 		stopOnce: sync.Once{},
 	}
-	go func(){
-		for arg := range v.args {
-			fun(arg)
+	go func() {
+		if fun == nil {
+			// todo: issue warning
+			for range v.args {
+				// do nothing
+			}
+		} else {
+			for arg := range v.args {
+				fun(arg)
+			}
 		}
 	}()
 	return
