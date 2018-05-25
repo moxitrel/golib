@@ -6,13 +6,13 @@ import (
 )
 
 func Test_NewWithNil(t *testing.T) {
-	o := New(nil)
+	o := NewLoop(nil)
 	o.Stop()
 }
 
 func TestService_New(t *testing.T) {
 	i := 0
-	o := New(func() {
+	o := NewLoop(func() {
 		i++
 	})
 	defer o.Stop()
@@ -26,7 +26,7 @@ func TestService_New(t *testing.T) {
 }
 
 func TestService_Stop(t *testing.T) {
-	o := New(func() {
+	o := NewLoop(func() {
 		time.Sleep(time.Millisecond)
 	})
 	o.Stop()

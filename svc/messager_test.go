@@ -9,11 +9,11 @@ import (
 
 //
 //type StringMessager struct {
-//	*Dispatch
+//	*Messager
 //}
-//func StringMessagerOf(x *Dispatch, f func(string)) (v *StringMessager) {
+//func StringMessagerOf(x *Messager, f func(string)) (v *StringMessager) {
 //	v = &StringMessager{
-//		Dispatch: x,
+//		Messager: x,
 //	}
 //	v.Register(*new(string), func(x interface{}) {
 //		f(x.(string))
@@ -21,14 +21,14 @@ import (
 //	return v
 //}
 //func (o *StringMessager) AddMessage(x string) {
-//	o.Dispatch.AddMessage(x)
+//	o.Messager.AddMessage(x)
 //}
 
 func TestMessager(t *testing.T) {
 	o := NewDispatch()
 	defer o.Stop()
 
-	o.Register(*new(string), func(xAny interface{}) {
+	o.Register("", func(xAny interface{}) {
 		x := xAny.(string)
 		fmt.Printf("%v\n", x)
 	})

@@ -1,31 +1,32 @@
 /*
 
-NewFun f		:
+NewFunction f	:
 	Call arg	: "sched f(arg)"
 	Stop        : "stop the service"
 
 *** e.g.
 
-// 1. define a new type derive Fun
+// 1. define a new type derive Function
 type T struct {
-	Fun
+	Function
 }
 
 // 2. define construction
 func NewF() *T {
-	// 2.1. define a function with signature func(interface{})
-	f := func (arg interface{}) {
-		x := arg.(ArgT)		//recover type first
-		...					//do the things
+	// 2.1. define the function
+	f := func (arg ArgT) {
+		...
 	}
 
-	// 2.2. return
-	return &F{ *NewFun(f) }
+	// 2.2. wrap f with signature func(interface{})
+	return &F{*NewFunction(func(arg interface{}) {
+		f(arg.(ArgT))	//2.3. recover the type
+	})}
 }
 
 // 3. override Call() with desired argument type
 func (o *T) Call(x ArgT) {
-	o.Fun.Call(x)
+	o.Function.Call(x)
 }
 
 */
@@ -35,21 +36,23 @@ import (
 	"sync"
 )
 
-type Fun struct {
+type Function struct {
+	fun      func(interface{})
 	args     chan interface{}
 	stopOnce sync.Once
 }
 
 // Return a started fun-service
 // fun: apply with arg passed from Call()
-func NewFun(fun func(arg interface{})) (v *Fun) {
-	v = &Fun{
+func NewFunction(fun func(arg interface{})) (v *Function) {
+	v = &Function{
+		fun:      fun,
 		args:     make(chan interface{}, FUN_BUFFER_SIZE),
 		stopOnce: sync.Once{},
 	}
 	go func() {
 		if fun == nil {
-			// todo: issue warning
+			// todo: issue warning or panic
 			for range v.args {
 				// do nothing
 			}
@@ -62,12 +65,12 @@ func NewFun(fun func(arg interface{})) (v *Fun) {
 	return
 }
 
-func (o *Fun) Stop() {
+func (o *Function) Stop() {
 	o.stopOnce.Do(func() {
 		close(o.args)
 	})
 }
 
-func (o *Fun) Call(arg interface{}) {
+func (o *Function) Call(arg interface{}) {
 	o.args <- arg
 }

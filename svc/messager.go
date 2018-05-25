@@ -2,7 +2,7 @@
 
 NewDispatch:
 	Register   x cb:
-	Handle     x   : "schedule cb(x)"
+	Handle     x   : "sched cb(x)"
 
 */
 package svc
@@ -11,16 +11,16 @@ import (
 	"reflect"
 )
 
-type Dispatch struct {
-	Fun
+type Messager struct {
+	Function
 	handlers map[reflect.Type]func(interface{})
 }
 
-func NewDispatch() (v *Dispatch) {
-	v = &Dispatch{
+func NewDispatch() (v *Messager) {
+	v = &Messager{
 		handlers: make(map[reflect.Type]func(interface{})),
 	}
-	v.Fun = *NewFun(func(msg interface{}) {
+	v.Function = *NewFunction(func(msg interface{}) {
 		handle := v.handlers[reflect.TypeOf(msg)]
 		if handle == nil {
 			// todo: issue warning
@@ -31,10 +31,10 @@ func NewDispatch() (v *Dispatch) {
 	return v
 }
 
-func (o *Dispatch) Register(msg interface{}, handle func(interface{})) {
+func (o *Messager) Register(msg interface{}, handle func(interface{})) {
 	o.handlers[reflect.TypeOf(msg)] = handle
 }
 
-func (o *Dispatch) Handle(msg interface{}) {
-	o.Fun.Call(msg)
+func (o *Messager) Handle(msg interface{}) {
+	o.Function.Call(msg)
 }

@@ -1,27 +1,26 @@
 /*
 
 NewThunk    	    :
-	Do thunk		: "sched thunkService()"
+	Do thunk		: "sched thunk()"
 	Stop 			: "stop the service"
 
 */
 package svc
 
 type Thunk struct {
-	Fun
+	Function
 }
 
 func NewThunk() *Thunk {
-	f := func(x interface{}) {
-		thunk := x.(func())
+	return &Thunk{*NewFunction(func(thunkAny interface{}) {
+		thunk := thunkAny.(func())
 		thunk()
-	}
-	return &Thunk{*NewFun(f)}
+	})}
 }
 
 func (o *Thunk) Do(thunk func()) {
 	if thunk == nil {
 		return
 	}
-	o.Fun.Call(thunk)
+	o.Function.Call(thunk)
 }
