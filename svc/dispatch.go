@@ -23,6 +23,7 @@ func NewDispatch() (v *Dispatch) {
 	v.Fun = *NewFun(func(msg interface{}) {
 		handle := v.handlers[reflect.TypeOf(msg)]
 		if handle == nil {
+			// todo: issue warning
 			return
 		}
 		handle(msg)

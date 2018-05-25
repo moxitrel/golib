@@ -1,7 +1,7 @@
 /*
 
-NewFun f		: "finish f(Any) added by Call()"
-	Call arg	: "schedule f(arg)"
+NewFun f		:
+	Call arg	: "sched f(arg)"
 	Stop 		:
 
 *** e.g.
@@ -52,6 +52,9 @@ func NewFun(fun func(arg interface{})) (v *Fun) {
 	}
 	v = &Fun{
 		fun: fun,
+		args: make(chan interface{}, FUN_BUFFER_SIZE),	//overwritten by Start()
+		startOnce: sync.Once{},
+		stopOnce: sync.Once{},							//overwritten by Start()
 	}
 	v.Start()
 	return
