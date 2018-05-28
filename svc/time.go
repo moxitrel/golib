@@ -34,7 +34,7 @@ func NewTime(accuracy time.Duration) (v *Time) {
 		tasks:        hashset.New(),
 		thunkService: *NewThunk(),
 	}
-	v.Loop = NewLoop(func() {
+	v.Loop = *NewLoop(func() {
 		now := time.Now()
 		time.Sleep(now.Truncate(v.accuracy).Add(v.accuracy).Sub(now) % v.accuracy)
 

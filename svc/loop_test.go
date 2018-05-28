@@ -5,12 +5,12 @@ import (
 	"time"
 )
 
-func Test_NewWithNil(t *testing.T) {
+func Test_NewLoopWithNil(t *testing.T) {
 	o := NewLoop(nil)
 	o.Stop()
 }
 
-func TestService_New(t *testing.T) {
+func Test_Loop(t *testing.T) {
 	i := 0
 	o := NewLoop(func() {
 		i++
@@ -35,3 +35,4 @@ func TestService_Stop(t *testing.T) {
 		t.Errorf("o.state != STOPPED, want STOPPED")
 	}
 }
+

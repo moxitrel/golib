@@ -37,7 +37,7 @@ import (
 )
 
 type Function struct {
-	fun      func(interface{})
+	Loop
 	args     chan interface{}
 	stopOnce sync.Once
 }
@@ -46,31 +46,37 @@ type Function struct {
 // fun: apply with arg passed from Call()
 func NewFunction(fun func(arg interface{})) (v *Function) {
 	v = &Function{
-		fun:      fun,
-		args:     make(chan interface{}, FUN_BUFFER_SIZE),
+		args:     make(chan interface{}, FunctionBufferSize),
 		stopOnce: sync.Once{},
 	}
-	go func() {
-		if fun == nil {
-			// todo: issue warning or panic
-			for range v.args {
-				// do nothing
-			}
-		} else {
-			for arg := range v.args {
+	v.Loop = *NewLoop(func() {
+		// do {...} until (...);
+		for {
+			arg := <-v.args
+			if arg != v.args {	//ignore quit recv flag sent by Stop()
 				fun(arg)
 			}
+
+			if len(v.args) == 0 {
+				break
+			}
 		}
-	}()
+	})
+	if fun == nil {
+		v.Stop()
+	}
 	return
 }
 
 func (o *Function) Stop() {
 	o.stopOnce.Do(func() {
-		close(o.args)
+		o.Loop.Stop()
+		o.args <- o.args	//quit recv if blocked, unexported field args as a flag
 	})
 }
 
 func (o *Function) Call(arg interface{}) {
-	o.args <- arg
+	if o.state == RUNNING {
+		o.args <- arg
+	}
 }
