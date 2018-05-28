@@ -1,10 +1,9 @@
 /*
 func NewTime(accuracy time.Duration) *Time
-func (*Time) Add   (cond func() bool, do func()) *Task
+func (*Time) Add   (func()) *Task
 func (*Time) Delete(*Task)
-func (*Time) Stop  ()
 
-func (*Time) RunOnce(cond func() bool, do func()) 	*Task
+func (*Time) RunOnce(func()) 						*Task
 func (*Time) At    	(time.Time    	 , func()) 		*Task
 func (*Time) Every  (time.Duration	 , func()) 		*Task
 */
@@ -16,51 +15,35 @@ import (
 	"time"
 )
 
-type Task struct {
-	cond func() bool
-	do   func()
-}
+type Task struct{ thunk func() }
 
 type Time struct {
 	Loop
 	accuracy     time.Duration
 	tasks        sets.Set
-	thunkService Thunk
 }
 
 func NewTime(accuracy time.Duration) (v *Time) {
 	v = &Time{
 		accuracy:     accuracy,
 		tasks:        hashset.New(),
-		thunkService: *NewThunk(),
 	}
 	v.Loop = *NewLoop(func() {
 		now := time.Now()
 		time.Sleep(now.Truncate(v.accuracy).Add(v.accuracy).Sub(now) % v.accuracy)
 
-		for _, taskAny := range v.tasks.Values() {
-			task := taskAny.(*Task)
-			v.thunkService.Do(func() {
-				if task.cond() == true {
-					task.do()
-				}
-			})
-		}
-
-		// "send on closed channel" error if stop thunkService together with Loop.Stop(), for tasks is still being traversed
-		if v.Loop.state != RUNNING {
-			v.thunkService.Stop()
+		for _, value := range v.tasks.Values() {
+			task := value.(*Task)
+			task.thunk()
 		}
 	})
 	return
 }
 
-func (o *Time) Add(cond func() bool, do func()) (v *Task) {
-	v = &Task{cond, do}
-	if cond != nil && do != nil {
+func (o *Time) Add(thunk func()) (v *Task) {
+	v = &Task{thunk: thunk,}
+	if thunk != nil {
 		o.tasks.Add(v)
-	} else {
-		// todo: issue warning or panic
 	}
 	return
 }
@@ -69,35 +52,35 @@ func (o *Time) Delete(task *Task) {
 	o.tasks.Remove(task)
 }
 
-func (o *Time) RunOnce(cond func() bool, do func()) (v *Task) {
-	v = o.Add(func() bool { return false }, func() {})		// make placeholder task which never run
-	v.do = func() {
-		do()
+func (o *Time) RunOnce(thunk func()) (v *Task) {
+	v = o.Add(func(){})		//make a placeholder
+	v.thunk = func() {
+		thunk()
 		o.Delete(v)
 	}
-	v.cond = cond	// add task finish
 	return
 }
 
 // Run do() at future.
-// If future is before now, run immediately
+// If future is before now, run at next check
 func (o *Time) At(future time.Time, do func()) (v *Task) {
-	v = o.RunOnce(
-		func() bool { return !time.Now().Before(future) },
-		do)
+	v = o.RunOnce(func() {
+		if !time.Now().Before(future) {
+			do()
+		}
+	})
 	return
 }
 
 // Run do() every interval ns
-func (o *Time) Every(interval time.Duration, do func()) *Task {
+func (o *Time) Every(interval time.Duration, do func()) (v *Task) {
 	tnext := time.Now().Truncate(interval).Add(interval)
-	return o.Add(func() bool {
+	v = o.Add(func() {
 		now := time.Now()
-		if now.Before(tnext) {
-			return false
-		} else {
+		if !now.Before(tnext) {
 			tnext = now.Truncate(interval).Add(interval)
-			return true
+			do()
 		}
-	}, do)
+	})
+	return
 }

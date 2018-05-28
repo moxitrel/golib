@@ -5,26 +5,16 @@ import (
 	"time"
 )
 
-func TestLoop(t *testing.T) {
+func Test_TimeEvery(t *testing.T) {
 	var accuracy = 100 * time.Millisecond
 
 	o := NewTime(accuracy)
+	defer o.Join()
 	defer o.Stop()
 
-	o.Every(accuracy*2, func() {
+	intvl := 2 * accuracy
+	o.Every(intvl, func() {
 		t.Logf("%v\n", time.Now())
 	})
-	time.Sleep(accuracy * 2 * 5)
-}
-
-func TestAtLoop(t *testing.T) {
-	var accuracy = 100 * time.Millisecond
-
-	o := NewTime(accuracy)
-	defer o.Stop()
-
-	o.At(time.Now(), func() {
-		t.Logf("%s\n", time.Now())
-	})
-	time.Sleep(accuracy * 10)
+	time.Sleep(5 * intvl)
 }

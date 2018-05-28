@@ -2,7 +2,6 @@
 
 NewThunk    	    :
 	Do thunk		: "sched thunk()"
-	Stop 			: "stop the service"
 
 */
 package svc

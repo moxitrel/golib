@@ -1,8 +1,7 @@
 /*
 
-NewFunction f	:
+NewFunction f	: derive Loop
 	Call arg	: "sched f(arg)"
-	Stop        : "stop the service"
 
 *** e.g.
 
