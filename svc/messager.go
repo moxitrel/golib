@@ -20,7 +20,7 @@ func NewMessager() (v *Messager) {
 	v = &Messager{
 		handlers: make(map[reflect.Type]func(interface{})),
 	}
-	v.Function = *NewFunction(func(msg interface{}) {
+	v.Function = *NewFunction(FunctionBufferSize, func(msg interface{}) {
 		handle := v.handlers[reflect.TypeOf(msg)]
 		if handle == nil {
 			// todo: issue warning

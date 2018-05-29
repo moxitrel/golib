@@ -1,3 +1,3 @@
 package svc
 
-var FunctionBufferSize = 1000 * 10000
+var FunctionBufferSize uint = 1000 * 10000

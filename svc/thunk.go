@@ -8,13 +8,17 @@ package svc
 
 type Thunk struct {
 	Function
+	thunk chan func()
 }
 
 func NewThunk() *Thunk {
-	return &Thunk{*NewFunction(func(thunkAny interface{}) {
-		thunk := thunkAny.(func())
-		thunk()
-	})}
+	return &Thunk{
+		Function: *NewFunction(FunctionBufferSize, func(thunkAny interface{}) {
+			thunk := thunkAny.(func())
+			thunk()
+		}),
+		thunk: make(chan func()),
+	}
 }
 
 func (o *Thunk) Do(thunk func()) {

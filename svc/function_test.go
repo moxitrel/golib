@@ -1,12 +1,13 @@
 package svc
 
 import (
+	"sync"
 	"testing"
 	"time"
 )
 
 func Test_Function(t *testing.T) {
-	o := NewFunction(func(x interface{}) {
+	o := NewFunction(100, func(x interface{}) {
 		t.Logf("%v", x)
 	})
 	defer o.Stop()
@@ -17,7 +18,7 @@ func Test_Function(t *testing.T) {
 }
 
 func Test_FunctionCallAfterStop(t *testing.T) {
-	o := NewFunction(func(x interface{}) {
+	o := NewFunction(100, func(x interface{}) {
 		t.Logf("%v", x)
 	})
 	o.Stop()
@@ -29,7 +30,7 @@ func Test_FunctionCallAfterStop(t *testing.T) {
 
 func Test_FunctionNewWithNil(t *testing.T) {
 	// no panic
-	o := NewFunction(nil)
+	o := NewFunction(100, nil)
 	defer o.Stop()
 
 	// no panic
@@ -38,15 +39,30 @@ func Test_FunctionNewWithNil(t *testing.T) {
 }
 
 func Test_FunctionStopCallRace(t *testing.T) {
-	o := NewFunction(func(x interface{}) {
-		time.Sleep(1 * time.Second)
+	startSignal := make(chan struct{})
+	startOnce := sync.Once{}
+	o := NewFunction(FunctionBufferSize, func(x interface{}) {
+		startOnce.Do(func() {
+			startSignal <- struct{}{}
+		})
+		//t.Logf("%v", time.Now())
 	})
-	defer o.Join()
-	defer o.Stop()
+	o.Call(nil)
+	<-startSignal
+
+	wg := sync.WaitGroup{}
 	go func() {
+		wg.Add(1)
 		for o.state == RUNNING {
 			o.Call(0)
 		}
+		wg.Done()
 	}()
-	time.Sleep(1 * time.Second)
+	time.Sleep(10 * time.Millisecond)
+	o.Stop()
+	o.Join()
+	wg.Wait()
+	if len(o.args) != 0 {
+		t.Errorf("args.len = %v, want 0", len(o.args))
+	}
 }

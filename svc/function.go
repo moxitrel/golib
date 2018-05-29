@@ -1,6 +1,6 @@
 /*
 
-NewFunction f	: derive Loop
+NewFunction n f	: "loop f(arg)"
 	Call arg	: "sched f(arg)"
 
 *** e.g.
@@ -36,23 +36,21 @@ import (
 )
 
 type Function struct {
-	Loop
+	*Loop
 	args     chan interface{}
 	stopOnce sync.Once
 }
 
-// Return a started fun-service
-// fun: apply with arg passed from Call()
-func NewFunction(fun func(arg interface{})) (v *Function) {
+func NewFunction(bufferSize uint, fun func(arg interface{})) (v *Function) {
 	v = &Function{
-		args:     make(chan interface{}, FunctionBufferSize),
+		args:     make(chan interface{}, bufferSize),
 		stopOnce: sync.Once{},
 	}
-	v.Loop = *NewLoop(func() {
+	v.Loop = NewLoop(func() {
 		// do {...} until (...);
 		for {
 			arg := <-v.args
-			if arg != v.args {	//ignore quit recv flag sent by Stop()
+			if arg != v.args { //ignore quit-recv-signal sent by Stop()
 				fun(arg)
 			}
 
@@ -70,7 +68,7 @@ func NewFunction(fun func(arg interface{})) (v *Function) {
 func (o *Function) Stop() {
 	o.stopOnce.Do(func() {
 		o.Loop.Stop()
-		o.args <- o.args	//quit recv if blocked, unexported field args as a flag
+		o.args <- o.args //unexported field as quit-recv-signal
 	})
 }
 

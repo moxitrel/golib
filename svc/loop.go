@@ -15,14 +15,14 @@ const (
 type Loop struct {
 	thunk func()
 	state int
-	wg sync.WaitGroup
+	wg    sync.WaitGroup
 }
 
 func NewLoop(thunk func()) (v *Loop) {
 	v = &Loop{
 		thunk: thunk,
 		state: RUNNING,
-		wg: sync.WaitGroup{},
+		wg:    sync.WaitGroup{},
 	}
 	if v.thunk == nil {
 		return

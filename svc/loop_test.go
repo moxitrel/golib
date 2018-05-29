@@ -1,6 +1,7 @@
 package svc
 
 import (
+	"sync"
 	"testing"
 	"time"
 )
@@ -25,14 +26,24 @@ func Test_Loop(t *testing.T) {
 	}
 }
 
-func TestService_Stop(t *testing.T) {
+func Test_LoopJoin(t *testing.T) {
+	startSignal := make(chan struct{})
+	startOnce := sync.Once{}
+	i := 0
 	o := NewLoop(func() {
-		time.Sleep(time.Millisecond)
+		startOnce.Do(func() {
+			startSignal <- struct{}{}
+		})
+		time.Sleep(100 * time.Millisecond)
+		i = 1
 	})
-	o.Stop()
+	<-startSignal
+	t.Logf("wg: %v", o.wg)
 
-	if o.state != STOPPED {
-		t.Errorf("o.state != STOPPED, want STOPPED")
+	o.Stop()
+	o.Join()
+
+	if i != 1 {
+		t.Errorf("i = %v, want 1", i)
 	}
 }
-

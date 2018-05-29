@@ -19,14 +19,14 @@ type Task struct{ thunk func() }
 
 type Time struct {
 	Loop
-	accuracy     time.Duration
-	tasks        sets.Set
+	accuracy time.Duration
+	tasks    sets.Set
 }
 
 func NewTime(accuracy time.Duration) (v *Time) {
 	v = &Time{
-		accuracy:     accuracy,
-		tasks:        hashset.New(),
+		accuracy: accuracy,
+		tasks:    hashset.New(),
 	}
 	v.Loop = *NewLoop(func() {
 		now := time.Now()
@@ -41,7 +41,7 @@ func NewTime(accuracy time.Duration) (v *Time) {
 }
 
 func (o *Time) Add(thunk func()) (v *Task) {
-	v = &Task{thunk: thunk,}
+	v = &Task{thunk: thunk}
 	if thunk != nil {
 		o.tasks.Add(v)
 	}
@@ -53,7 +53,7 @@ func (o *Time) Delete(task *Task) {
 }
 
 func (o *Time) RunOnce(thunk func()) (v *Task) {
-	v = o.Add(func(){})		//make a placeholder
+	v = o.Add(func() {}) //make a placeholder
 	v.thunk = func() {
 		thunk()
 		o.Delete(v)
