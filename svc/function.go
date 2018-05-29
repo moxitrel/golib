@@ -38,13 +38,13 @@ import (
 type Function struct {
 	*Loop
 	args     chan interface{}
-	stopOnce sync.Once
+	stopOnce *sync.Once
 }
 
 func NewFunction(bufferSize uint, fun func(arg interface{})) (v *Function) {
 	v = &Function{
 		args:     make(chan interface{}, bufferSize),
-		stopOnce: sync.Once{},
+		stopOnce: new(sync.Once),
 	}
 	v.Loop = NewLoop(func() {
 		// do {...} until (...);
