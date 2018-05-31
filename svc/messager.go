@@ -12,7 +12,7 @@ import (
 )
 
 type Messager struct {
-	Function
+	*Function
 	handlers map[reflect.Type]func(interface{})
 }
 
@@ -20,7 +20,7 @@ func NewMessager() (v *Messager) {
 	v = &Messager{
 		handlers: make(map[reflect.Type]func(interface{})),
 	}
-	v.Function = *NewFunction(FunctionBufferSize, func(msg interface{}) {
+	v.Function = NewFunction(DefaultBufferSize, func(msg interface{}) {
 		handle := v.handlers[reflect.TypeOf(msg)]
 		if handle == nil {
 			// todo: issue warning

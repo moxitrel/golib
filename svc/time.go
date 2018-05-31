@@ -18,7 +18,7 @@ import (
 type Task struct{ thunk func() }
 
 type Time struct {
-	Loop
+	*Loop
 	accuracy time.Duration
 	tasks    sets.Set
 }
@@ -28,7 +28,7 @@ func NewTime(accuracy time.Duration) (v *Time) {
 		accuracy: accuracy,
 		tasks:    hashset.New(),
 	}
-	v.Loop = *NewLoop(func() {
+	v.Loop = NewLoop(func() {
 		now := time.Now()
 		time.Sleep(now.Truncate(v.accuracy).Add(v.accuracy).Sub(now) % v.accuracy)
 

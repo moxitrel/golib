@@ -13,7 +13,7 @@ type Thunk struct {
 
 func NewThunk() *Thunk {
 	return &Thunk{
-		Function: *NewFunction(FunctionBufferSize, func(thunkAny interface{}) {
+		Function: *NewFunction(DefaultBufferSize, func(thunkAny interface{}) {
 			thunk := thunkAny.(func())
 			thunk()
 		}),

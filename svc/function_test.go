@@ -1,11 +1,11 @@
 package svc
 
 import (
+	"math"
 	"runtime"
 	"sync"
 	"testing"
 	"time"
-	"math"
 )
 
 func Test_Function(t *testing.T) {
@@ -43,7 +43,7 @@ func Test_FunctionNewWithNil(t *testing.T) {
 func Test_FunctionStopCallRace(t *testing.T) {
 	startSignal := make(chan struct{})
 	startOnce := sync.Once{}
-	o := NewFunction(FunctionBufferSize, func(x interface{}) {
+	o := NewFunction(DefaultBufferSize, func(x interface{}) {
 		startOnce.Do(func() {
 			startSignal <- struct{}{}
 		})
@@ -73,10 +73,12 @@ func Test_FunctionStopCallRace(t *testing.T) {
 func Test_LimitWrapMin(t *testing.T) {
 	ngo1 := runtime.NumGoroutine()
 
-	timeout := 100 * time.Millisecond
 	f := func(x interface{}) {}
 	var min uint16 = 3
-	f = LimitWrap(f, &min, 100, 0, timeout)
+	var max uint16 = 100
+	var delay = time.Duration(0)
+	var timeout = 100 * time.Millisecond
+	f = LimitWrap(f, &min, &max, &delay, &timeout)
 	fs := NewFunction(100, f)
 	ngo1 += 1 // master coroutine created by NewFunction()
 
@@ -102,15 +104,16 @@ func Test_LimitWrapMin(t *testing.T) {
 
 // 2. all created coroutine should quit if set min = 0
 func Test_LimitWrapTimeout(t *testing.T) {
-	delay := 100 * time.Millisecond
-	timeout := delay
 	f := func(x interface{}) {
 		t.Logf("%v", time.Now())
 		time.Sleep(100 * time.Millisecond)
 	}
 
 	var min uint16 = 1
-	f = LimitWrap(f, &min, 100, delay, timeout)
+	var max uint16 = 100
+	var delay = 100 * time.Millisecond
+	var timeout = delay
+	f = LimitWrap(f, &min, &max, &delay, &timeout)
 	fs := NewFunction(math.MaxUint16, f)
 	defer fs.Join()
 	defer fs.Stop()

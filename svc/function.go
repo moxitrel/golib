@@ -81,23 +81,20 @@ func (o *Function) Call(arg interface{}) {
 	}
 }
 
+// min    : at least <min> coroutines will be created and live
+// max    : the max number of coroutines can be created
 // delay  : create a new coroutine if arg is blocked for <delay> ns
 // timeout: destroy the coroutine if it's idle for <timeout> ns
-// *min   : at least <min> coroutines will be created
-//          if min is nil, the minimal number is 0
-// max    : the max number of coroutines can be created
 //
 // created coroutine won't quit until time out. Set *min to 0 if want to quit all
-// delay, timeout: a small value would be interfered by gc; a proper value should least 0.1s;
-func LimitWrap(fun func(interface{}), min *uint16, max uint16, delay time.Duration, timeout time.Duration) func(interface{}) {
+func LimitWrap(fun func(interface{}), min *uint16, max *uint16, delay *time.Duration, timeout *time.Duration) func(interface{}) {
 	if min == nil {
 		*min = 0
 	}
 
-	x := make(chan interface{})
-	cur := int32(0) //current coroutines count
-
-	newCoroutine := func() {
+	var x = make(chan interface{})
+	var cur int32 //current coroutines count
+	var newCoroutine = func() {
 		atomic.AddInt32(&cur, 1)
 		var loop *Loop
 		loop = NewLoop(func() {
@@ -105,28 +102,22 @@ func LimitWrap(fun func(interface{}), min *uint16, max uint16, delay time.Durati
 			select {
 			case arg := <-x:
 				fun(arg)
-			default:
-				select {
-				case arg := <-x:
-					fun(arg)
-				case <-time.After(timeout):
-					if atomic.LoadInt32(&cur) > int32(*min) {
-						loop.Stop()
-						atomic.AddInt32(&cur, -1)
-					}
+			case <-time.After(*timeout):
+				if atomic.LoadInt32(&cur) > int32(*min) {
+					loop.Stop()
+					atomic.AddInt32(&cur, -1)
 				}
 			}
 		})
 	}
 
-	cur = int32(*min)
-	for i := int32(0); i < int32(*min); i++ {
+	for cur = 0; cur < int32(*min); cur++ {
 		newCoroutine()
 	}
 
 	var limitFun func(interface{})
 	limitFun = func(arg interface{}) {
-		if atomic.LoadInt32(&cur) >= int32(max) {
+		if atomic.LoadInt32(&cur) >= int32(*max) {
 			x <- arg
 		} else {
 			select {
@@ -139,7 +130,7 @@ func LimitWrap(fun func(interface{}), min *uint16, max uint16, delay time.Durati
 			default:
 				select {
 				case x <- arg:
-				case <-time.After(delay):
+				case <-time.After(*delay): //a proper value should least 0.1s
 					newCoroutine()
 					limitFun(arg)
 				}
