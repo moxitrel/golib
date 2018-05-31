@@ -1,10 +1,11 @@
 package svc
 
 import (
+	"runtime"
 	"sync"
 	"testing"
 	"time"
-	"runtime"
+	"math"
 )
 
 func Test_Function(t *testing.T) {
@@ -77,7 +78,7 @@ func Test_LimitWrapMin(t *testing.T) {
 	var min uint16 = 3
 	f = LimitWrap(f, &min, 100, 0, timeout)
 	fs := NewFunction(100, f)
-	ngo1 += 1	// master coroutine created by NewFunction()
+	ngo1 += 1 // master coroutine created by NewFunction()
 
 	defer fs.Join()
 	defer fs.Stop()
@@ -85,8 +86,8 @@ func Test_LimitWrapMin(t *testing.T) {
 
 	ngo2 := runtime.NumGoroutine()
 	t.Logf("Goroutine.Count: %v", ngo2)
-	if ngo1 + int(min) != ngo2 {
-		t.Errorf("Goroutine.Count: %v, want %v", ngo2, ngo1 + int(min))
+	if ngo1+int(min) != ngo2 {
+		t.Errorf("Goroutine.Count: %v, want %v", ngo2, ngo1+int(min))
 	}
 
 	// 2.
@@ -95,7 +96,28 @@ func Test_LimitWrapMin(t *testing.T) {
 	ngo2 = runtime.NumGoroutine()
 	t.Logf("Goroutine.Count: %v", ngo2)
 	if ngo1 != ngo2 {
-		t.Errorf("Goroutine.Count: %v, want %v", ngo2, ngo1 + int(min))
+		t.Errorf("Goroutine.Count: %v, want %v", ngo2, ngo1+int(min))
+	}
+}
+
+// 2. all created coroutine should quit if set min = 0
+func Test_LimitWrapTimeout(t *testing.T) {
+	delay := 100 * time.Millisecond
+	timeout := delay
+	f := func(x interface{}) {
+		t.Logf("%v", time.Now())
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	var min uint16 = 1
+	f = LimitWrap(f, &min, 100, delay, timeout)
+	fs := NewFunction(math.MaxUint16, f)
+	defer fs.Join()
+	defer fs.Stop()
+	defer time.Sleep(time.Millisecond)
+
+	for i := 0; i < 100; i++ {
+		fs.Call(nil)
 	}
 }
 
@@ -109,8 +131,16 @@ func Test_Select(t *testing.T) {
 	for i := 0; i < n; i++ {
 		select {
 		case <-c:
-		case <-time.After(delay):
-			t.Fatalf("%v: %v+%v: select time.After(), want <-c", delay, i, len(c))
+			// The case here is to ensure <c> is blocked
+			//
+			// Don't it seems doing the same thing as the case in default clause?
+			// No, if <delay> is a small value, it would be interfered by gc.
+		default:
+			select {
+			case <-c:
+			case <-time.After(delay):
+				t.Fatalf("%v: %v+%v: select time.After(), want <-c", delay, i, len(c))
+			}
 		}
 	}
 }

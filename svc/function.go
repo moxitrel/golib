@@ -54,7 +54,7 @@ func NewFunction(maxArgs uint, fun func(arg interface{})) (v *Function) {
 		// apply args until emtpy
 		for arg := range v.args {
 			if arg != v.args { //ignore quit-recv-signal sent by Stop()
-				fun(arg)
+				v.fun(arg)
 			}
 
 			if len(v.args) == 0 {
@@ -105,10 +105,15 @@ func LimitWrap(fun func(interface{}), min *uint16, max uint16, delay time.Durati
 			select {
 			case arg := <-x:
 				fun(arg)
-			case <-time.After(timeout):
-				if atomic.LoadInt32(&cur) > int32(*min) {
-					loop.Stop()
-					atomic.AddInt32(&cur, -1)
+			default:
+				select {
+				case arg := <-x:
+					fun(arg)
+				case <-time.After(timeout):
+					if atomic.LoadInt32(&cur) > int32(*min) {
+						loop.Stop()
+						atomic.AddInt32(&cur, -1)
+					}
 				}
 			}
 		})
@@ -126,9 +131,18 @@ func LimitWrap(fun func(interface{}), min *uint16, max uint16, delay time.Durati
 		} else {
 			select {
 			case x <- arg:
-			case <-time.After(delay):
-				newCoroutine()
-				limitFun(arg)
+				// The case here is to ensure <x> is blocked
+				//
+				// Don't it seem the same as the case in default clause?
+				// No. If <delay> is a small value, it would be interfered by the delay caused by gc,
+				// and Go may choose the second case.
+			default:
+				select {
+				case x <- arg:
+				case <-time.After(delay):
+					newCoroutine()
+					limitFun(arg)
+				}
 			}
 		}
 	}
