@@ -33,23 +33,26 @@ package svc
 
 import (
 	"sync"
+	"sync/atomic"
+	"time"
 )
 
 type Function struct {
 	*Loop
+	fun      func(interface{})
 	args     chan interface{}
 	stopOnce *sync.Once
 }
 
-func NewFunction(bufferSize uint, fun func(arg interface{})) (v *Function) {
+func NewFunction(maxArgs uint, fun func(arg interface{})) (v *Function) {
 	v = &Function{
-		args:     make(chan interface{}, bufferSize),
+		fun:      fun,
+		args:     make(chan interface{}, maxArgs),
 		stopOnce: new(sync.Once),
 	}
 	v.Loop = NewLoop(func() {
-		// do {...} until (...);
-		for {
-			arg := <-v.args
+		// apply args until emtpy
+		for arg := range v.args {
 			if arg != v.args { //ignore quit-recv-signal sent by Stop()
 				fun(arg)
 			}
@@ -76,4 +79,58 @@ func (o *Function) Call(arg interface{}) {
 	if o.state == RUNNING {
 		o.args <- arg
 	}
+}
+
+// delay  : create a new coroutine if arg is blocked for <delay> ns
+// timeout: destroy the coroutine if it's idle for <timeout> ns
+// *min   : at least <min> coroutines will be created
+//          if min is nil, the minimal number is 0
+// max    : the max number of coroutines can be created
+//
+// created coroutine won't quit until time out. Set *min to 0 if want to quit all
+// delay, timeout: a small value would be interfered by gc; a proper value should least 0.1s;
+func LimitWrap(fun func(interface{}), min *uint16, max uint16, delay time.Duration, timeout time.Duration) func(interface{}) {
+	if min == nil {
+		*min = 0
+	}
+
+	x := make(chan interface{})
+	cur := int32(0) //current coroutines count
+
+	newCoroutine := func() {
+		atomic.AddInt32(&cur, 1)
+		var loop *Loop
+		loop = NewLoop(func() {
+			// if idle for <timeout> ns, quit
+			select {
+			case arg := <-x:
+				fun(arg)
+			case <-time.After(timeout):
+				if atomic.LoadInt32(&cur) > int32(*min) {
+					loop.Stop()
+					atomic.AddInt32(&cur, -1)
+				}
+			}
+		})
+	}
+
+	cur = int32(*min)
+	for i := int32(0); i < int32(*min); i++ {
+		newCoroutine()
+	}
+
+	var limitFun func(interface{})
+	limitFun = func(arg interface{}) {
+		if atomic.LoadInt32(&cur) >= int32(max) {
+			x <- arg
+		} else {
+			select {
+			case x <- arg:
+			case <-time.After(delay):
+				newCoroutine()
+				limitFun(arg)
+			}
+		}
+	}
+	return limitFun
 }
