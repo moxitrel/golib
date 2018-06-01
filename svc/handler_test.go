@@ -9,11 +9,11 @@ import (
 
 //
 //type StringMessager struct {
-//	*Messager
+//	*Handler
 //}
-//func StringMessagerOf(x *Messager, f func(string)) (v *StringMessager) {
+//func StringMessagerOf(x *Handler, f func(string)) (v *StringMessager) {
 //	v = &StringMessager{
-//		Messager: x,
+//		Handler: x,
 //	}
 //	v.Register(*new(string), func(x interface{}) {
 //		f(x.(string))
@@ -21,11 +21,11 @@ import (
 //	return v
 //}
 //func (o *StringMessager) AddMessage(x string) {
-//	o.Messager.AddMessage(x)
+//	o.Handler.AddMessage(x)
 //}
 
 func TestMessager(t *testing.T) {
-	o := NewMessager()
+	o := NewHandler()
 	defer o.Stop()
 
 	o.Register("", func(xAny interface{}) {
@@ -37,10 +37,10 @@ func TestMessager(t *testing.T) {
 	})
 
 	// send nil
-	o.Handle(nil)
+	o.Do(nil)
 	// send no handler
-	o.Handle("a")
-	o.Handle(9)
+	o.Do("a")
+	o.Do(9)
 
 	time.Sleep(time.Second * 1)
 }

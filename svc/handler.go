@@ -1,8 +1,8 @@
 /*
 
-NewMessager:
+NewHandler:
 	Register   x cb:
-	Handle     x   : "sched cb(x)"
+	Do     x   : "sched cb(x)"
 
 */
 package svc
@@ -11,13 +11,13 @@ import (
 	"reflect"
 )
 
-type Messager struct {
+type Handler struct {
 	*Function
 	handlers map[reflect.Type]func(interface{})
 }
 
-func NewMessager() (v *Messager) {
-	v = &Messager{
+func NewHandler() (v *Handler) {
+	v = &Handler{
 		handlers: make(map[reflect.Type]func(interface{})),
 	}
 	v.Function = NewFunction(DefaultBufferSize, func(msg interface{}) {
@@ -31,10 +31,10 @@ func NewMessager() (v *Messager) {
 	return v
 }
 
-func (o *Messager) Register(msg interface{}, handle func(interface{})) {
+func (o *Handler) Register(msg interface{}, handle func(interface{})) {
 	o.handlers[reflect.TypeOf(msg)] = handle
 }
 
-func (o *Messager) Handle(msg interface{}) {
+func (o *Handler) Do(msg interface{}) {
 	o.Function.Call(msg)
 }

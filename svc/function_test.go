@@ -74,20 +74,19 @@ func Test_LimitWrapMin(t *testing.T) {
 	ngo1 := runtime.NumGoroutine()
 
 	f := func(x interface{}) {}
-	var min uint16 = 3
+	var min uint16 = 7
 	var max uint16 = 100
 	var delay = time.Duration(0)
 	var timeout = 100 * time.Millisecond
 	f = PoolOf(f, &min, &max, &delay, &timeout)
 	fs := NewFunction(100, f)
-	ngo1 += 1 // master coroutine created by NewFunction()
+	ngo1 += 1 // coroutine created by NewFunction()
 
 	defer fs.Join()
 	defer fs.Stop()
 	defer time.Sleep(time.Millisecond)
 
 	ngo2 := runtime.NumGoroutine()
-	t.Logf("Goroutine.Count: %v", ngo2)
 	if ngo1+int(min) != ngo2 {
 		t.Errorf("Goroutine.Count: %v, want %v", ngo2, ngo1+int(min))
 	}
@@ -96,7 +95,6 @@ func Test_LimitWrapMin(t *testing.T) {
 	min = 0
 	time.Sleep(2 * timeout)
 	ngo2 = runtime.NumGoroutine()
-	t.Logf("Goroutine.Count: %v", ngo2)
 	if ngo1 != ngo2 {
 		t.Errorf("Goroutine.Count: %v, want %v", ngo2, ngo1+int(min))
 	}

@@ -111,7 +111,7 @@ func PoolOf(fun func(interface{}), min *uint16, max *uint16, delay *time.Duratio
 		})
 	}
 
-	for cur = 0; cur < int32(*min); cur++ {
+	for i := int32(0); i < int32(*min); i++ {
 		newCoroutine()
 	}
 
