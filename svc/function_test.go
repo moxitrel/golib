@@ -78,7 +78,7 @@ func Test_LimitWrapMin(t *testing.T) {
 	var max uint16 = 100
 	var delay = time.Duration(0)
 	var timeout = 100 * time.Millisecond
-	f = LimitWrap(f, &min, &max, &delay, &timeout)
+	f = PoolOf(f, &min, &max, &delay, &timeout)
 	fs := NewFunction(100, f)
 	ngo1 += 1 // master coroutine created by NewFunction()
 
@@ -113,7 +113,7 @@ func Test_LimitWrapTimeout(t *testing.T) {
 	var max uint16 = 100
 	var delay = 100 * time.Millisecond
 	var timeout = delay
-	f = LimitWrap(f, &min, &max, &delay, &timeout)
+	f = PoolOf(f, &min, &max, &delay, &timeout)
 	fs := NewFunction(math.MaxUint16, f)
 	defer fs.Join()
 	defer fs.Stop()
@@ -122,6 +122,30 @@ func Test_LimitWrapTimeout(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		fs.Call(nil)
 	}
+}
+
+func TestPool(t *testing.T) {
+	f := func(x interface{}) {
+		if x == nil {
+			return
+		}
+		y := x.(func())
+		y()
+	}
+	var min uint16 = 1
+	var max uint16 = 1
+	var delay = 500 * time.Millisecond
+	var timeout = time.Minute
+	o := PoolOf(f, &min, &max, &delay, &timeout)
+
+	o(nil)
+	o(func() {
+		t1 := time.Now()
+		t2 := time.Now()
+		t.Logf("%v", t2.Sub(t1))
+	})
+
+	time.Sleep(time.Millisecond)
 }
 
 func Test_Select(t *testing.T) {

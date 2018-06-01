@@ -87,7 +87,7 @@ func (o *Function) Call(arg interface{}) {
 // timeout: destroy the coroutine if it's idle for <timeout> ns
 //
 // created coroutine won't quit until time out. Set *min to 0 if want to quit all
-func LimitWrap(fun func(interface{}), min *uint16, max *uint16, delay *time.Duration, timeout *time.Duration) func(interface{}) {
+func PoolOf(fun func(interface{}), min *uint16, max *uint16, delay *time.Duration, timeout *time.Duration) func(interface{}) {
 	if min == nil {
 		*min = 0
 	}
@@ -130,7 +130,7 @@ func LimitWrap(fun func(interface{}), min *uint16, max *uint16, delay *time.Dura
 			default:
 				select {
 				case x <- arg:
-				case <-time.After(*delay): //a proper value should least 0.1s
+				case <-time.After(*delay): //a proper value should at least 0.1s, e.g. 0.5s
 					newCoroutine()
 					limitFun(arg)
 				}
