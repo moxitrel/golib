@@ -1,9 +1,8 @@
 /*
 func NewTime(accuracy time.Duration) *Time
-func (*Time) Add   (func()) *Task
-func (*Time) Delete(*Task)
+func (*Time) Add   	(func(*Task))					*Task
+func (*Time) Delete	(*Task)
 
-func (*Time) RunOnce(func() bool) 					*Task
 func (*Time) At    	(time.Time    	 , func()) 		*Task
 func (*Time) Every  (time.Duration	 , func()) 		*Task
 */
@@ -15,7 +14,7 @@ import (
 	"time"
 )
 
-type Task struct{ thunk func() }
+type Task struct{ do func(*Task) }
 
 type Time struct {
 	*Loop
@@ -34,15 +33,17 @@ func NewTime(accuracy time.Duration) (v *Time) {
 
 		for _, value := range v.tasks.Values() {
 			task := value.(*Task)
-			task.thunk()
+			task.do()
 		}
 	})
 	return
 }
 
-func (o *Time) Add(thunk func()) (v *Task) {
-	v = &Task{thunk: thunk}
-	if thunk != nil {
+func (o *Time) Add(do func(v *Task)) (v *Task) {
+	v = &Task{
+		do: do,
+	}
+	if do != nil {
 		o.tasks.Add(v)
 	}
 	return
@@ -52,35 +53,22 @@ func (o *Time) Delete(task *Task) {
 	o.tasks.Remove(task)
 }
 
-// Remove the task if do() return true
-func (o *Time) RunOnce(do func() bool) (v *Task) {
-	v = o.Add(func() {}) //make a placeholder
-	v.thunk = func() {
-		if do() == true {
-			o.Delete(v)
-		}
-	}
-	return
-}
-
-// Run thunk() once at <future>.
+// Run do() once at <future>.
 // If future is before now, run at next check
 func (o *Time) At(future time.Time, thunk func()) (v *Task) {
-	v = o.RunOnce(func() bool {
-		if time.Now().Before(future) {
-			return false
-		} else {
+	v = o.Add(func(v *Task) {
+		if !time.Now().Before(future) {
 			thunk()
-			return true
+			o.Delete(v)
 		}
 	})
 	return
 }
 
-// Run thunk() every <interval> ns
+// Run do() every <interval> ns
 func (o *Time) Every(interval time.Duration, thunk func()) (v *Task) {
 	tnext := time.Now().Truncate(interval).Add(interval)
-	v = o.Add(func() {
+	v = o.Add(func(v *Task) {
 		now := time.Now()
 		if !now.Before(tnext) {
 			tnext = now.Truncate(interval).Add(interval)
