@@ -33,7 +33,7 @@ func NewTime(accuracy time.Duration) (v *Time) {
 
 		for _, value := range v.tasks.Values() {
 			task := value.(*Task)
-			task.do()
+			task.do(task)
 		}
 	})
 	return
@@ -53,7 +53,7 @@ func (o *Time) Delete(task *Task) {
 	o.tasks.Remove(task)
 }
 
-// Run do() once at <future>.
+// Run thunk() once at <future>.
 // If future is before now, run at next check
 func (o *Time) At(future time.Time, thunk func()) (v *Task) {
 	v = o.Add(func(v *Task) {
@@ -65,7 +65,7 @@ func (o *Time) At(future time.Time, thunk func()) (v *Task) {
 	return
 }
 
-// Run do() every <interval> ns
+// Run thunk() every <interval> ns
 func (o *Time) Every(interval time.Duration, thunk func()) (v *Task) {
 	tnext := time.Now().Truncate(interval).Add(interval)
 	v = o.Add(func(v *Task) {
