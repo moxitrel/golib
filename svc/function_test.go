@@ -8,6 +8,21 @@ import (
 	"time"
 )
 
+func Test_StopSignal_Uniqueness(t *testing.T) {
+	type MockStopSignal struct {}
+	mockStopSignal := MockStopSignal{}
+	structStopSignal := struct {}{}
+
+	t.Logf("_STOP_SIGNAL: %#v", _STOP_SIGNAL)
+	t.Logf("mockStopSignal: %#v", mockStopSignal)
+	t.Logf("structStopSignal: %#v", structStopSignal)
+
+	if interface{}(mockStopSignal) == interface{}(_STOP_SIGNAL) ||
+		interface{}(structStopSignal) == interface{}(_STOP_SIGNAL) {
+		t.Fatalf("_STOP_SIGNAL isn't unique.")
+	}
+}
+
 func Test_Function(t *testing.T) {
 	o := NewFunction(100, func(x interface{}) {
 		t.Logf("%v", x)
@@ -74,8 +89,8 @@ func Test_LimitWrapMin(t *testing.T) {
 	ngo1 := runtime.NumGoroutine()
 
 	f := func(x interface{}) {}
-	var min uint16 = 7
-	var max uint16 = 100
+	var min uint = 7
+	var max uint = 100
 	var delay = time.Duration(0)
 	var timeout = 100 * time.Millisecond
 	f = PoolOf(f, &min, &max, &delay, &timeout)
@@ -107,8 +122,8 @@ func Test_LimitWrapTimeout(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 	}
 
-	var min uint16 = 1
-	var max uint16 = 100
+	var min uint = 1
+	var max uint = 100
 	var delay = 100 * time.Millisecond
 	var timeout = delay
 	f = PoolOf(f, &min, &max, &delay, &timeout)
@@ -130,8 +145,8 @@ func TestPool(t *testing.T) {
 		y := x.(func())
 		y()
 	}
-	var min uint16 = 1
-	var max uint16 = 1
+	var min uint = 1
+	var max uint = 1
 	var delay = 500 * time.Millisecond
 	var timeout = time.Minute
 	o := PoolOf(f, &min, &max, &delay, &timeout)

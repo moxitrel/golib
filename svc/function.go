@@ -44,6 +44,9 @@ type Function struct {
 	stopOnce *sync.Once
 }
 
+type _StopSignal struct{}
+var _STOP_SIGNAL = _StopSignal{}
+
 func NewFunction(maxArgs uint, fun func(arg interface{})) (v *Function) {
 	v = &Function{
 		fun:      fun,
@@ -53,7 +56,7 @@ func NewFunction(maxArgs uint, fun func(arg interface{})) (v *Function) {
 	v.Loop = NewLoop(func() {
 		// apply args until emtpy
 		for arg := range v.args {
-			if arg != v.args { //ignore quit-recv-signal sent by Stop()
+			if arg != _STOP_SIGNAL {
 				v.fun(arg)
 			}
 
@@ -71,7 +74,7 @@ func NewFunction(maxArgs uint, fun func(arg interface{})) (v *Function) {
 func (o *Function) Stop() {
 	o.stopOnce.Do(func() {
 		o.Loop.Stop()
-		o.args <- o.args //unexported field as quit-recv-signal
+		o.args <- _STOP_SIGNAL
 	})
 }
 
@@ -81,18 +84,31 @@ func (o *Function) Call(arg interface{}) {
 	}
 }
 
-// min    : at least <min> coroutines will be created and live
+// min    : at least <min> coroutines will be created and live all the time
 // max    : the max number of coroutines can be created
 // delay  : create a new coroutine if arg is blocked for <delay> ns
 // timeout: destroy the coroutine if it's idle for <timeout> ns
 //
 // created coroutine won't quit until time out. Set *min to 0 if want to quit all
-func PoolOf(fun func(interface{}), min *uint16, max *uint16, delay *time.Duration, timeout *time.Duration) func(interface{}) {
+func PoolOf(fun func(interface{}), min *uint, max *uint, delay *time.Duration, timeout *time.Duration) func(interface{}) {
 	if min == nil {
-		*min = 0
+		defaultMin := uint(0)
+		min = &defaultMin
+	}
+	if max == nil {
+		defaultMax := *min
+		min = &defaultMax
+	}
+	if delay == nil {
+		defaultDelay := time.Duration(0)
+		delay = &defaultDelay
+	}
+	if timeout == nil {
+		defaultTimeout := *delay
+		timeout = &defaultTimeout
 	}
 
-	var x = make(chan interface{})
+	var argChannel = make(chan interface{})
 	var cur int32 //current coroutines count
 	var newCoroutine = func() {
 		atomic.AddInt32(&cur, 1)
@@ -100,7 +116,7 @@ func PoolOf(fun func(interface{}), min *uint16, max *uint16, delay *time.Duratio
 		loop = NewLoop(func() {
 			// if idle for <timeout> ns, quit
 			select {
-			case arg := <-x:
+			case arg := <-argChannel:
 				fun(arg)
 			case <-time.After(*timeout):
 				if atomic.LoadInt32(&cur) > int32(*min) {
@@ -118,18 +134,18 @@ func PoolOf(fun func(interface{}), min *uint16, max *uint16, delay *time.Duratio
 	var limitFun func(interface{})
 	limitFun = func(arg interface{}) {
 		if atomic.LoadInt32(&cur) >= int32(*max) {
-			x <- arg
+			argChannel <- arg
 		} else {
 			select {
-			case x <- arg:
-				// The case here is to ensure <x> is blocked
+			case argChannel <- arg:
+				// The case here is to ensure <argChannel> is blocked
 				//
 				// Don't it seem the same as the case in default clause?
 				// No. If <delay> is a small value, it would be interfered by the delay caused by gc,
 				// and Go may choose the second case.
 			default:
 				select {
-				case x <- arg:
+				case argChannel <- arg:
 				case <-time.After(*delay): //a proper value should at least 0.1s, e.g. 0.5s
 					newCoroutine()
 					limitFun(arg)

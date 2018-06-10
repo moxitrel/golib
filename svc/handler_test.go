@@ -3,7 +3,7 @@ package svc
 import (
 	"testing"
 	"time"
-	//"gitlab.com/clogwire/v4/log"
+	//"gitlab.com/clowire/gateway/v4/log"
 	"fmt"
 )
 
