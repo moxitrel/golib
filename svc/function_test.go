@@ -1,17 +1,15 @@
 package svc
 
 import (
-	"math"
-	"runtime"
 	"sync"
 	"testing"
 	"time"
 )
 
 func Test_StopSignal_Uniqueness(t *testing.T) {
-	type MockStopSignal struct {}
+	type MockStopSignal struct{}
 	mockStopSignal := MockStopSignal{}
-	structStopSignal := struct {}{}
+	structStopSignal := struct{}{}
 
 	t.Logf("_STOP_SIGNAL: %#v", _STOP_SIGNAL)
 	t.Logf("mockStopSignal: %#v", mockStopSignal)
@@ -85,81 +83,81 @@ func Test_FunctionStopCallRace(t *testing.T) {
 }
 
 // 2. all created coroutine should quit if set min = 0
-func Test_LimitWrapMin(t *testing.T) {
-	ngo1 := runtime.NumGoroutine()
-
-	f := func(x interface{}) {}
-	var min uint = 7
-	var max uint = 100
-	var delay = time.Duration(0)
-	var timeout = 100 * time.Millisecond
-	f = PoolOf(f, &min, &max, &delay, &timeout)
-	fs := NewFunction(100, f)
-	ngo1 += 1 // coroutine created by NewFunction()
-
-	defer fs.Join()
-	defer fs.Stop()
-	defer time.Sleep(time.Millisecond)
-
-	ngo2 := runtime.NumGoroutine()
-	if ngo1+int(min) != ngo2 {
-		t.Errorf("Goroutine.Count: %v, want %v", ngo2, ngo1+int(min))
-	}
-
-	// 2.
-	min = 0
-	time.Sleep(2 * timeout)
-	ngo2 = runtime.NumGoroutine()
-	if ngo1 != ngo2 {
-		t.Errorf("Goroutine.Count: %v, want %v", ngo2, ngo1+int(min))
-	}
-}
+//func Test_LimitWrapMin(t *testing.T) {
+//	ngo1 := runtime.NumGoroutine()
+//
+//	f := func(x interface{}) {}
+//	var min uint = 7
+//	var max uint = 100
+//	var delay = time.Duration(0)
+//	var timeout = 100 * time.Millisecond
+//	f = PoolOf(f, &min, &max, &delay, &timeout)
+//	fs := NewFunction(100, f)
+//	ngo1 += 1 // coroutine created by NewFunction()
+//
+//	defer fs.Join()
+//	defer fs.Stop()
+//	defer time.Sleep(time.Millisecond)
+//
+//	ngo2 := runtime.NumGoroutine()
+//	if ngo1+int(min) != ngo2 {
+//		t.Errorf("Goroutine.Count: %v, want %v", ngo2, ngo1+int(min))
+//	}
+//
+//	// 2.
+//	min = 0
+//	time.Sleep(2 * timeout)
+//	ngo2 = runtime.NumGoroutine()
+//	if ngo1 != ngo2 {
+//		t.Errorf("Goroutine.Count: %v, want %v", ngo2, ngo1+int(min))
+//	}
+//}
 
 // 2. all created coroutine should quit if set min = 0
-func Test_LimitWrapTimeout(t *testing.T) {
-	f := func(x interface{}) {
-		t.Logf("%v", time.Now())
-		time.Sleep(100 * time.Millisecond)
-	}
+//func Test_LimitWrapTimeout(t *testing.T) {
+//	f := func(x interface{}) {
+//		t.Logf("%v", time.Now())
+//		time.Sleep(100 * time.Millisecond)
+//	}
+//
+//	var min uint = 1
+//	var max uint = 100
+//	var delay = 100 * time.Millisecond
+//	var timeout = delay
+//	f = PoolOf(f, &min, &max, &delay, &timeout)
+//	fs := NewFunction(math.MaxUint16, f)
+//	defer fs.Join()
+//	defer fs.Stop()
+//	defer time.Sleep(time.Millisecond)
+//
+//	for i := 0; i < 100; i++ {
+//		fs.Call(nil)
+//	}
+//}
 
-	var min uint = 1
-	var max uint = 100
-	var delay = 100 * time.Millisecond
-	var timeout = delay
-	f = PoolOf(f, &min, &max, &delay, &timeout)
-	fs := NewFunction(math.MaxUint16, f)
-	defer fs.Join()
-	defer fs.Stop()
-	defer time.Sleep(time.Millisecond)
-
-	for i := 0; i < 100; i++ {
-		fs.Call(nil)
-	}
-}
-
-func TestPool(t *testing.T) {
-	f := func(x interface{}) {
-		if x == nil {
-			return
-		}
-		y := x.(func())
-		y()
-	}
-	var min uint = 1
-	var max uint = 1
-	var delay = 500 * time.Millisecond
-	var timeout = time.Minute
-	o := PoolOf(f, &min, &max, &delay, &timeout)
-
-	o(nil)
-	o(func() {
-		t1 := time.Now()
-		t2 := time.Now()
-		t.Logf("%v", t2.Sub(t1))
-	})
-
-	time.Sleep(time.Millisecond)
-}
+//func TestPool(t *testing.T) {
+//	f := func(x interface{}) {
+//		if x == nil {
+//			return
+//		}
+//		y := x.(func())
+//		y()
+//	}
+//	var min uint = 1
+//	var max uint = 1
+//	var delay = 500 * time.Millisecond
+//	var timeout = time.Minute
+//	o := PoolOf(f, &min, &max, &delay, &timeout)
+//
+//	o(nil)
+//	o(func() {
+//		t1 := time.Now()
+//		t2 := time.Now()
+//		t.Logf("%v", t2.Sub(t1))
+//	})
+//
+//	time.Sleep(time.Millisecond)
+//}
 
 func Test_Select(t *testing.T) {
 	n := 10000 * 10000
