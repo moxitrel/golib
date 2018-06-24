@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	DefaultBufferSize uint = 1000 * 10000
+	FuncArgMax = 1<<24 - 1
 
 	PoolMin     uint32 = 2
 	PoolMax     uint32 = math.MaxUint16
