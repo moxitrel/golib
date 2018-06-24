@@ -158,27 +158,3 @@ func Test_FunctionStopCallRace(t *testing.T) {
 //
 //	time.Sleep(time.Millisecond)
 //}
-
-func Test_Select(t *testing.T) {
-	n := 10000 * 10000
-	delay := time.Duration(0) //1 * time.Millisecond
-	c := make(chan struct{}, n)
-	for i := 0; i < n; i++ {
-		c <- struct{}{}
-	}
-	for i := 0; i < n; i++ {
-		select {
-		case <-c:
-			// The case here is to ensure <c> is blocked
-			//
-			// Don't it seems doing the same thing as the case in default clause?
-			// No, if <delay> is a small value, it would be interfered by gc.
-		default:
-			select {
-			case <-c:
-			case <-time.After(delay):
-				t.Fatalf("%v: %v+%v: select time.After(), want <-c", delay, i, len(c))
-			}
-		}
-	}
-}

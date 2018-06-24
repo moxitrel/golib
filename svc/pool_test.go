@@ -6,6 +6,26 @@ import (
 	"time"
 )
 
+func Test_Select(t *testing.T) {
+	n := 10000 * 10000
+	delay := 100  * time.Millisecond
+	c := make(chan struct{}, n)
+	for i := 0; i < n; i++ {
+		c <- struct{}{}
+	}
+	for i := 0; i < n; i++ {
+		select {
+		case <-c:
+		case <-time.After(delay):
+			// If <delay> is too small, select may choose this case even <o.arg> isn't blocked.
+			// May be interfered by the delay caused by gc.
+			//
+			// 100ms is a proper value in my test.
+			t.Fatalf("%v: %v+%v: select time.After(), want <-c", delay, i, len(c))
+		}
+	}
+}
+
 func TestPool_NumGoroutine(t *testing.T) {
 	PoolTimeOut = time.Second
 	ngoBegin := runtime.NumGoroutine()

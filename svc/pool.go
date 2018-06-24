@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Start [min, max] goroutines of <fun> to process arg
 type Pool struct {
 	fun func(interface{})
 	arg chan interface{}
@@ -45,10 +46,7 @@ func (o *Pool) Call(arg interface{}) {
 		select {
 		case o.arg <- arg:
 		case <-time.After(o.delay):
-			// If <delay> is too small, select may be interfered by the delay caused by gc,
-			// and Go may select this case even <o.arg> isn't blocked.
-			//
-			// A proper value of <o.delay> should at least 0.1s
+			// If <delay> is too small, select may choose this case even <o.arg> isn't blocked.
 			if o.newProcess() {
 				// todo: ensure the new process is started before try again
 				o.Call(arg)
