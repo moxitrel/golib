@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	FuncArgMax = 1<<24 - 1
+	FuncArgMax = math.MaxUint16
 
 	PoolMin     uint32 = 2
 	PoolMax     uint32 = math.MaxUint16

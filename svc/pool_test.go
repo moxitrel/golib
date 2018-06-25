@@ -90,7 +90,6 @@ func TestPool_NumGoroutine(t *testing.T) {
 //	}
 //}
 
-
 // 2. all created coroutine should quit if set min = 0
 //func Test_LimitWrapTimeout(t *testing.T) {
 //	f := func(x interface{}) {

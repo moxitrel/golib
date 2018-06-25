@@ -20,7 +20,6 @@ func Test_StopSignal_Uniqueness(t *testing.T) {
 	}
 }
 
-
 func TestNewFuncWithNil(t *testing.T) {
 	// no panic
 	o := NewFunc(nil)
@@ -58,7 +57,6 @@ func TestFunc_CallAfterStop(t *testing.T) {
 		t.Errorf("x = %v, want %v", x, 0)
 	}
 }
-
 
 func TestFunc_StopCallRace(t *testing.T) {
 	o := NewFunc(func(interface{}) {})
