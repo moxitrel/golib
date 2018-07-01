@@ -1,7 +1,6 @@
 package golib
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -10,7 +9,7 @@ import (
 
 func WriteAll(writer io.Writer, data []byte) error {
 	if writer == nil {
-		panic(errors.New(fmt.Sprintf("%v: writer = %v, want !nil .", Caller(0), writer)))
+		Panic(fmt.Sprintf("writer = nil, want !nil", ))
 	}
 	if len(data) == 0 {
 		return nil
@@ -27,7 +26,7 @@ func WriteAll(writer io.Writer, data []byte) error {
 	return nil
 }
 
-// Send a request and receive the response on TCP
+// Send one request, and receive the response on TCP
 // remoteAddr: e.g. "192.168.0.1:8080"
 // cb: if return false, continue receiving response data; if return true, quit
 func TcpOnce(remoteAddr string, sentData []byte, timeout time.Duration, cb func([]byte) bool) error {
@@ -49,7 +48,7 @@ func TcpOnce(remoteAddr string, sentData []byte, timeout time.Duration, cb func(
 		return err
 	}
 
-	// receive response
+	// receive response unitl callback success or timeout
 	buffer := BytesPool.Get()
 	defer BytesPool.Put(buffer)
 	i := 0
