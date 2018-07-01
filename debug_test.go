@@ -1,8 +1,8 @@
 package golib
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 func TestCallerName(t *testing.T) {
@@ -17,7 +17,7 @@ func TestPanic(t *testing.T) {
 	msg := "msg"
 	defer func() {
 		err := recover()
-		rightErrorMsg := fmt.Sprintf("%v%v","golib.TestPanic.26: ", msg)
+		rightErrorMsg := fmt.Sprintf("%v%v", "golib.TestPanic.26: ", msg)
 		if err.(error).Error() != rightErrorMsg {
 			t.Errorf("Panic(%v): %v /= %v", msg, err, rightErrorMsg)
 		}

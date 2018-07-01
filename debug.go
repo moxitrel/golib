@@ -1,10 +1,10 @@
 package golib
 
 import (
-	"runtime"
+	"errors"
 	"fmt"
 	"path/filepath"
-	"errors"
+	"runtime"
 )
 
 // <pkg>.<func>.<line-no>
@@ -16,7 +16,6 @@ func Caller(n int) string {
 
 	return fmt.Sprintf("%s.%d", filepath.Base(runtime.FuncForPC(pc).Name()), line)
 }
-
 
 func CallTree(n int) string {
 	n++
