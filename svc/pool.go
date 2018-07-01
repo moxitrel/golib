@@ -60,7 +60,8 @@ func (o *Pool) Call(arg interface{}) {
 // The created coroutine won't quit unless time out. Set min to 0 if want to quit all
 func (o *Pool) newProcess() bool {
 	if atomic.AddUint32(&o.cur, 1) > o.max {
-		atomic.AddUint32(&o.cur, ^uint32(0))
+		// no coroutine created, restore the value
+		atomic.AddUint32(&o.cur, ^uint32(0))	// o.cur -= 1
 		return false
 	}
 
@@ -69,10 +70,11 @@ func (o *Pool) newProcess() bool {
 		select {
 		case arg := <-o.arg:
 			o.fun(arg)
-		case <-time.After(o.timeout): //if idle for <timeout> ns, quit
+		case <-time.After(o.timeout): // quit if idle for <timeout> ns
 			if atomic.AddUint32(&o.cur, ^uint32(0)) >= o.min {
 				loop.Stop()
 			} else {
+				// coroutine isn't killed, restore the value
 				atomic.AddUint32(&o.cur, 1)
 			}
 		}

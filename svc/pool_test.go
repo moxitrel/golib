@@ -20,7 +20,7 @@ func Test_Select(t *testing.T) {
 			// If <delay> is too small, select may choose this case even <o.arg> isn't blocked.
 			// May be interfered by the delay caused by gc.
 			//
-			// 100ms is a proper value in my test.
+			// 100ms is a proper value in my test if channel buffer large data
 			t.Fatalf("%v: %v+%v: select time.After(), want <-c", delay, i, len(c))
 		}
 	}
