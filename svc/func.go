@@ -7,14 +7,13 @@ NewFunc (Any -> ())	: "loop f(arg)"
 
 // 1. define a new type derive Func
 type T struct {
-	Func
+	*Func
 }
 
 // 2. define construction
-func NewF() *T {
-	// wrap f with signature func(interface{})
-	return &F{*NewFunc(func(argAny interface{}) {
-		arg := argAny.(ArgT)	//2.3. recover the type
+func NewF() T {
+	return &F{NewFunc(func(argAny interface{}) {
+		arg := argAny.(ArgT)	// recover the type
 		...
 	})}
 }

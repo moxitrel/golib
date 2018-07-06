@@ -9,11 +9,11 @@ import (
 
 //
 //type StringMessager struct {
-//	*Map
+//	*Route
 //}
-//func StringMessagerOf(x *Map, f func(string)) (v *StringMessager) {
+//func StringMessagerOf(x *Route, f func(string)) (v *StringMessager) {
 //	v = &StringMessager{
-//		Map: x,
+//		Route: x,
 //	}
 //	v.Register(*new(string), func(x interface{}) {
 //		f(x.(string))
@@ -21,11 +21,11 @@ import (
 //	return v
 //}
 //func (o *StringMessager) AddMessage(x string) {
-//	o.Map.AddMessage(x)
+//	o.Route.AddMessage(x)
 //}
 
-func TestMap_RegisterAndCall(t *testing.T) {
-	o := NewMap()
+func TestRoute_RegisterAndCall(t *testing.T) {
+	o := NewRoute()
 	defer o.Stop()
 
 	oT := reflect.Invalid

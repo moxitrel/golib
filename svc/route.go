@@ -1,6 +1,6 @@
 /*
 
-NewMap:
+NewRoute:
 	Register   x cb:
 	Call     	   x   : "sched cb(x)"
 
@@ -11,13 +11,13 @@ import (
 	"reflect"
 )
 
-type Map struct {
+type Route struct {
 	*Func
 	funs map[reflect.Type]func(interface{})
 }
 
-func NewMap() (v Map) {
-	v = Map{
+func NewRoute() (v Route) {
+	v = Route{
 		funs: make(map[reflect.Type]func(interface{})),
 	}
 	v.Func = NewFunc(func(arg interface{}) {
@@ -31,10 +31,10 @@ func NewMap() (v Map) {
 	return v
 }
 
-func (o *Map) Register(arg interface{}, fun func(interface{})) {
+func (o *Route) Register(arg interface{}, fun func(interface{})) {
 	o.funs[reflect.TypeOf(arg)] = fun
 }
 
-func (o *Map) Call(arg interface{}) {
+func (o *Route) Call(arg interface{}) {
 	o.Func.Call(arg)
 }
