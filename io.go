@@ -29,7 +29,7 @@ func WriteAll(writer io.Writer, data []byte) error {
 // Send one request, and receive the response on TCP
 // remoteAddr: e.g. "192.168.0.1:8080"
 // cb: handle response; if return false, continue receiving response data; if return true, quit
-func TcpRequest(remoteAddr string, sentData []byte, cb func([]byte) bool, timeout time.Duration) error {
+func TcpRequest(remoteAddr string, sentData []byte, cb func(net.Conn, []byte) bool, timeout time.Duration) error {
 	if len(sentData) == 0 || cb == nil {
 		return nil // NOTE: may use panic() instead
 	}
@@ -56,7 +56,7 @@ func TcpRequest(remoteAddr string, sentData []byte, cb func([]byte) bool, timeou
 	for i := 0;; {
 		n, err := conn.Read(buffer[i:])
 		i += n
-		if n > 0 && cb(buffer[:i]) {
+		if n > 0 && cb(conn, buffer[:i]) {
 			// success
 			err = nil
 			break
