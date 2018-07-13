@@ -29,7 +29,7 @@ func WriteAll(writer io.Writer, data []byte) error {
 // Send one request, and receive the response on TCP
 // remoteAddr: e.g. "192.168.0.1:8080"
 // cb: handle response; if return false, continue receiving response data; if return true, quit
-func TcpOnce(remoteAddr string, sentData []byte, timeout time.Duration, cb func([]byte) bool) error {
+func TcpOnce(remoteAddr string, sentData []byte, cb func([]byte) bool, timeout time.Duration) error {
 	if len(sentData) == 0 || cb == nil {
 		return nil // NOTE: may use panic() instead
 	}
@@ -50,9 +50,10 @@ func TcpOnce(remoteAddr string, sentData []byte, timeout time.Duration, cb func(
 
 	// receive response unitl callback success or timeout
 	buffer := BytesPool.Get()
-	defer BytesPool.Put(buffer)
-	i := 0
-	for {
+	defer func() {
+		BytesPool.Put(buffer)
+	}()
+	for i := 0;; {
 		n, err := conn.Read(buffer[i:])
 		i += n
 		if n > 0 && cb(buffer[:i]) {
