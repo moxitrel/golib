@@ -19,7 +19,7 @@ func TestWriteAll(t *testing.T) {
 }
 
 func TestTcpOnce(t *testing.T) {
-	TcpOnce(
+	TcpRequest(
 		"baidu.com:80",
 		[]byte("GET /index.htm HTTP/1.1\r\nContent-Length: 0\r\n\r\n"),
 		func(rsp []byte) bool {
