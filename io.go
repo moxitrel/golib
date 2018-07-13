@@ -1,15 +1,15 @@
 package golib
 
 import (
-	"fmt"
 	"io"
 	"net"
 	"time"
 )
 
+// Send all bytes in data to writer.
 func WriteAll(writer io.Writer, data []byte) error {
 	if writer == nil {
-		Panic(fmt.Sprintf("writer = nil, want !nil", ))
+		Panic("writer = nil, want !nil")
 	}
 	if len(data) == 0 {
 		return nil
@@ -26,48 +26,80 @@ func WriteAll(writer io.Writer, data []byte) error {
 	return nil
 }
 
+// Receive bytes from reader until ok() return true.
+func ReadUnitl(reader io.Reader, ok func([]byte)bool) (buffer []byte, err error) {
+	if reader == nil {
+		Panic("reader = nil, want !nil")
+	}
+	if ok == nil {
+		Panic("ok = nil, want !nil")
+	}
+	buffer = BytesPool.Get()
+	// receive response unitl callback success or timeout
+	for i := 0;; {
+		n, err := reader.Read(buffer[i:])
+		i += n
+		if n > 0 && ok(buffer[:i]) {
+			// success
+			buffer, err = buffer[:i], nil
+			break
+		}
+		if err != nil {
+			break
+		}
+		if i+1 == len(buffer) { // buffer is full
+			buffer = append(buffer, make([]byte, len(buffer))...)
+		}
+	}
+	return
+}
+
+// Send req, and receive response until cb() return true.
+func WriteCb(rw io.ReadWriter, req []byte, cb func(io.ReadWriter, []byte) bool) (err error) {
+	if rw == nil {
+		Panic("rw = nil, want !nil")
+	}
+	if len(req) == 0 {
+		return nil
+	}
+
+	// send request
+	err = WriteAll(rw, req)
+	if err != nil {
+		return
+	}
+
+	// handle response
+	if cb == nil {
+		return
+	}
+	data, err := ReadUnitl(rw, func(buffer []byte)bool {
+		return cb(rw, buffer)
+	})
+
+	BytesPool.Put(data)
+	return
+}
+
 // Send one request, and receive the response on TCP
 // remoteAddr: e.g. "192.168.0.1:8080"
 // cb: handle response; if return false, continue receiving response data; if return true, quit
-func TcpRequest(remoteAddr string, sentData []byte, cb func(net.Conn, []byte) bool, timeout time.Duration) error {
-	if len(sentData) == 0 || cb == nil {
-		return nil // NOTE: may use panic() instead
+func WithTcpWrite(remoteAddr string, sentData []byte, cb func(net.Conn, []byte) bool, timeout time.Duration) (err error) {
+	if len(sentData) == 0 {
+		return nil
 	}
 
 	// connect
 	conn, err := net.DialTimeout("tcp", remoteAddr, timeout)
 	if err != nil {
-		return err
+		return
 	}
 	defer conn.Close()
 	conn.SetDeadline(time.Now().Add(timeout))
 
-	// send request
-	err = WriteAll(conn, sentData)
-	if err != nil {
-		return err
-	}
+	err = WriteCb(conn, sentData, func(_ io.ReadWriter, bytes []byte) bool {
+		return cb(conn, bytes)
+	})
 
-	// receive response unitl callback success or timeout
-	buffer := BytesPool.Get()
-	defer func() {
-		BytesPool.Put(buffer)
-	}()
-	for i := 0;; {
-		n, err := conn.Read(buffer[i:])
-		i += n
-		if n > 0 && cb(conn, buffer[:i]) {
-			// success
-			err = nil
-			break
-		}
-		if err != nil {
-			// err: io.EOF | net.OpError.Timeout() | ...
-			break
-		}
-		if i+1 == len(buffer) { // buffer is full
-			buffer = append(buffer, make([]byte, 1024)...)
-		}
-	}
-	return err
+	return
 }
