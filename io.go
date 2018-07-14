@@ -47,7 +47,7 @@ func ReadUnitl(reader io.Reader, ok func([]byte)bool) (buffer []byte, err error)
 		if err != nil {
 			break
 		}
-		if i+1 == len(buffer) { // buffer is full
+		if i == len(buffer) { // buffer is full
 			buffer = append(buffer, make([]byte, len(buffer))...)
 		}
 	}
