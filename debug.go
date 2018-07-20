@@ -3,7 +3,6 @@ package golib
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
 	"runtime"
 )
 
@@ -13,16 +12,13 @@ func Caller(n int) string {
 	if !ok {
 		return ""
 	}
-
-	return fmt.Sprintf("%s.%d", filepath.Base(runtime.FuncForPC(pc).Name()), line)
+	return fmt.Sprintf("%s.%d", runtime.FuncForPC(pc).Name(), line)
 }
 
-func CallTree(n int) string {
-	n++
-	var v = ""
-	for i := n; i > 1; i-- {
+func CallTree(n int) (v string) {
+	for i := n + 1; i > 1; i-- {
 		v += Caller(i)
-		v += " -> "
+		v += " : "
 	}
 	v += Caller(1)
 	return v

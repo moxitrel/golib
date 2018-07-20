@@ -36,8 +36,9 @@ func ReadUnitl(reader io.Reader, ok func([]byte)bool) (buffer []byte, err error)
 	}
 	buffer = BytesPool.Get()
 	// receive response unitl callback success or timeout
+	var n int
 	for i := 0;; {
-		n, err := reader.Read(buffer[i:])
+		n, err = reader.Read(buffer[i:])
 		i += n
 		if n > 0 && ok(buffer[:i]) {
 			// success
@@ -100,6 +101,23 @@ func WithTcpWrite(remoteAddr string, sentData []byte, cb func(net.Conn, []byte) 
 	err = WriteCb(conn, sentData, func(_ io.ReadWriter, bytes []byte) bool {
 		return cb(conn, bytes)
 	})
+
+	return
+}
+
+func WithTcp(remoteAddr string, cb func(net.Conn)) (err error) {
+	if cb == nil {
+		return
+	}
+
+	// connect
+	conn, err := net.Dial("tcp", remoteAddr)
+	if err != nil {
+		return
+	}
+	defer conn.Close()
+
+	cb(conn)
 
 	return
 }
