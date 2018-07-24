@@ -1,8 +1,8 @@
 package golib
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 func TestDefer(t *testing.T) {

@@ -27,7 +27,7 @@ func WriteAll(writer io.Writer, data []byte) error {
 }
 
 // Receive bytes from reader until ok() return true.
-func ReadUnitl(reader io.Reader, ok func([]byte)bool) (buffer []byte, err error) {
+func ReadUnitl(reader io.Reader, ok func([]byte) bool) (buffer []byte, err error) {
 	if reader == nil {
 		Panic("reader = nil, want !nil")
 	}
@@ -37,7 +37,7 @@ func ReadUnitl(reader io.Reader, ok func([]byte)bool) (buffer []byte, err error)
 	buffer = BytesPool.Get()
 	// receive response unitl callback success or timeout
 	var n int
-	for i := 0;; {
+	for i := 0; ; {
 		n, err = reader.Read(buffer[i:])
 		i += n
 		if n > 0 && ok(buffer[:i]) {
@@ -74,7 +74,7 @@ func WriteCb(rw io.ReadWriter, req []byte, cb func(io.ReadWriter, []byte) bool) 
 	if cb == nil {
 		return
 	}
-	data, err := ReadUnitl(rw, func(buffer []byte)bool {
+	data, err := ReadUnitl(rw, func(buffer []byte) bool {
 		return cb(rw, buffer)
 	})
 

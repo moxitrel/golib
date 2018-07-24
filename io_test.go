@@ -1,9 +1,9 @@
 package golib
 
 import (
+	"net"
 	"testing"
 	"time"
-	"net"
 )
 
 func TestWriteAll(t *testing.T) {

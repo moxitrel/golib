@@ -5,6 +5,7 @@ import "sync"
 type _BytesPool struct {
 	sync.Pool
 }
+
 func (o *_BytesPool) Get() []byte {
 	return o.Pool.Get().([]byte)
 }

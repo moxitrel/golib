@@ -61,7 +61,7 @@ func (o *Pool) Call(arg interface{}) {
 func (o *Pool) newProcess() bool {
 	if atomic.AddUint32(&o.cur, 1) > o.max {
 		// no coroutine created, restore the value
-		atomic.AddUint32(&o.cur, ^uint32(0))	// o.cur -= 1
+		atomic.AddUint32(&o.cur, ^uint32(0)) // o.cur -= 1
 		return false
 	}
 
