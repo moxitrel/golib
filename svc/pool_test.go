@@ -108,7 +108,7 @@ func TestPool_NumGoroutine(t *testing.T) {
 //	defer time.Sleep(time.Millisecond)
 //
 //	for i := 0; i < 100; i++ {
-//		fs.Call(nil)
+//		fs.Apply(nil)
 //	}
 //}
 

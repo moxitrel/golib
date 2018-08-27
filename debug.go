@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"path"
 )
 
 // <pkg>.<func>.<line-no>
@@ -12,7 +13,7 @@ func Caller(n int) string {
 	if !ok {
 		return ""
 	}
-	return fmt.Sprintf("%s.%d", runtime.FuncForPC(pc).Name(), line)
+	return fmt.Sprintf("%s.%d", path.Base(runtime.FuncForPC(pc).Name()), line)
 }
 
 func CallTree(n int) (v string) {
@@ -25,6 +26,10 @@ func CallTree(n int) (v string) {
 }
 
 // panic with current function's info
-func Panic(xs ...interface{}) {
-	panic(errors.New(Caller(1) + ": " + fmt.Sprint(xs...)))
+func Panic(format string, args ...interface{}) {
+	panic(errors.New(fmt.Sprintf(Caller(1) + ": " + format, args...)))
+}
+
+func Warn(format string, args ...interface{}) {
+	fmt.Printf(Caller(1) + ": " + format, args...)
 }

@@ -1,7 +1,7 @@
 /*
 
 NewFunc (Any -> ())	: "loop f(arg)"
-	Call Any : "sched f(arg)"
+	Apply Any : "sched f(arg)"
 
 *** e.g.
 
@@ -18,9 +18,9 @@ func NewF() T {
 	})}
 }
 
-// 3. override Call() with desired type
-func (o *T) Call(x ArgT) {
-	o.Func.Call(x)
+// 3. override Apply() with desired type
+func (o *T) Apply(x ArgT) {
+	o.Func.Apply(x)
 }
 
 */
@@ -28,6 +28,7 @@ package svc
 
 import (
 	"sync"
+	"github.com/moxitrel/golib"
 )
 
 type Func struct {
@@ -39,10 +40,15 @@ type Func struct {
 
 type _StopSignal struct{}
 
-func NewFunc(fun func(arg interface{})) (v *Func) {
+func NewFunc(bufferCapacity uint, fun func(arg interface{})) (v *Func) {
+	if fun == nil {
+		golib.Warn("<fun> shouldn't be nil!\n")
+		fun = func(_ interface{}) {}
+	}
+
 	v = &Func{
 		fun:      fun,
-		args:     make(chan interface{}, FuncArgMax),
+		args:     make(chan interface{}, bufferCapacity),
 		stopOnce: new(sync.Once),
 	}
 	v.Loop = NewLoop(func() {
@@ -56,9 +62,6 @@ func NewFunc(fun func(arg interface{})) (v *Func) {
 			}
 		}
 	})
-	if fun == nil {
-		v.Stop()
-	}
 	return
 }
 
@@ -69,7 +72,7 @@ func (o *Func) Stop() {
 	})
 }
 
-func (o *Func) Call(arg interface{}) {
+func (o *Func) Apply(arg interface{}) {
 	if o.state == RUNNING {
 		o.args <- arg
 	}
