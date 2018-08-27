@@ -10,52 +10,55 @@ package svc
 import (
 	"reflect"
 	"github.com/moxitrel/golib"
+	"sync"
 )
 
-var validateMapKeyCache = make(map[reflect.Type]bool)
+var validateMapKeyCache = new(sync.Map)
 
-func validateMapKey(keyType reflect.Type) (v bool) {
+func ValidateMapKey(keyType reflect.Type) (v bool) {
 	v = true
+
 	switch keyType.Kind() {
-	case reflect.Invalid:
-		v = false
-	case reflect.Func:
-		v = false
-	case reflect.Slice:
-		v = false
-	case reflect.Map:
+	case reflect.Invalid, reflect.Func, reflect.Slice, reflect.Map:
 		v = false
 	case reflect.Struct:
-		if v_, ok := validateMapKeyCache[keyType]; ok {
-			v = v_
+		if anyV, ok := validateMapKeyCache.Load(keyType); ok {
+			v = anyV.(bool)
 		} else {
 			for i := 0; i < keyType.NumField(); i++ {
-				if validateMapKey(keyType.Field(i).Type) == false {
+				if ValidateMapKey(keyType.Field(i).Type) == false {
 					v = false
 					break
 				}
 			}
+			validateMapKeyCache.Store(keyType, v)
 		}
 	}
 
-	validateMapKeyCache[keyType] = v
 	return
 }
 
+// not thread-safe
 type Handler map[interface{}]func(interface{})
 
 func NewHandler() Handler {
 	return make(Handler)
 }
 
+// arg: arg's type shoudn't be function, slice, map or struct contains function, slice or map field
+// fun: nil, delete the handler for arg
 func (o Handler) Register(arg interface{}, fun func(interface{})) {
-	// ignore invalid key type
-	if validateMapKey(reflect.TypeOf(arg)) == false {
+	// assert invalid key type
+	if ValidateMapKey(reflect.TypeOf(arg)) == false {
 		golib.Panic("%t isn't a valid map key type!\n", arg)
 		return
 	}
+
+	// delete handler
 	if fun == nil {
-		golib.Warn("<fun> shouldn't be nil!\n")
+		if o[arg] != nil {
+			delete(o, arg)
+		}
 	}
 
 	o[arg] = fun
@@ -63,10 +66,10 @@ func (o Handler) Register(arg interface{}, fun func(interface{})) {
 
 func (o Handler) Apply(arg interface{}) {
 	// skip invalid key type
-	//if validateMapKey(reflect.TypeOf(arg)) == false {
-	//	golib.Warn("%t isn't a valid map key type!\n", arg)
-	//	return
-	//}
+	if ValidateMapKey(reflect.TypeOf(arg)) == false {
+		golib.Warn("%t isn't a valid map key type!\n", arg)
+		return
+	}
 
 	fun := o[arg]
 	if fun == nil {

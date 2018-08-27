@@ -56,9 +56,9 @@ func TestHandler(t *testing.T) {
 	handler.Register(1, func(_ interface{}){
 		t.Log(1)
 	})
-	//handler.Register(func(){}, func(_ interface{}){
-	//	t.Log("func")
-	//})
+	handler.Register(func(){}, func(_ interface{}){
+		t.Log("func")
+	})
 	handler.Register(reflect.TypeOf(int(0)), nil)
 	handler.Apply(1)
 	handler.Apply(2)
