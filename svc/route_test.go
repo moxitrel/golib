@@ -53,14 +53,20 @@ func TestRoute_RegisterAndCall(t *testing.T) {
 
 func TestHandler(t *testing.T) {
 	handler := NewHandler()
+	handler.Register(1, func(_ interface{}){})
 	handler.Register(1, func(_ interface{}){
 		t.Log(1)
 	})
-	handler.Register(func(){}, func(_ interface{}){
-		t.Log("func")
-	})
+	//handler.Register(func(){}, func(_ interface{}){
+	//	t.Log("func")
+	//})
 	handler.Register(reflect.TypeOf(int(0)), nil)
 	handler.Apply(1)
 	handler.Apply(2)
 	handler.Apply([]byte{1,2,3})
+}
+
+func TestMap(t *testing.T) {
+	m := make(map[interface{}]interface{})
+	delete(m, 0)
 }

@@ -54,14 +54,15 @@ func (o Handler) Register(arg interface{}, fun func(interface{})) {
 		return
 	}
 
-	// delete handler
 	if fun == nil {
+		// delete handler
+		delete(o, arg)
+	} else {
 		if o[arg] != nil {
-			delete(o, arg)
+			golib.Warn("%v is already registered and will be overridden!\n", arg)
 		}
+		o[arg] = fun
 	}
-
-	o[arg] = fun
 }
 
 func (o Handler) Apply(arg interface{}) {
