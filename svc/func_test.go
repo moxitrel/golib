@@ -23,36 +23,36 @@ func Test_StopSignal_Uniqueness(t *testing.T) {
 
 func TestNewFuncWithNil(t *testing.T) {
 	// no panic
-	o := NewFunc(math.MaxUint8, nil)
+	o := NewFuncService(math.MaxUint8, nil)
 	defer o.Stop()
 
 	// no panic
 	// no effect
-	o.Apply(1)
-	o.Apply(nil)
-	o.Apply(struct{}{})
+	o.Call(1)
+	o.Call(nil)
+	o.Call(struct{}{})
 }
 
 func TestNewFunc(t *testing.T) {
-	o := NewFunc(math.MaxUint8, func(x interface{}) {
+	o := NewFuncService(math.MaxUint8, func(x interface{}) {
 		t.Logf("%v", x)
 	})
 	defer o.Stop()
-	o.Apply(1)
-	o.Apply(2)
-	o.Apply(3)
+	o.Call(1)
+	o.Call(2)
+	o.Call(3)
 	time.Sleep(time.Millisecond)
 }
 
 func TestFunc_CallAfterStop(t *testing.T) {
 	x := 0
-	o := NewFunc(math.MaxUint8, func(arg interface{}) {
+	o := NewFuncService(math.MaxUint8, func(arg interface{}) {
 		x = arg.(int)
 	})
 	o.Stop()
 
 	// no effect after stop
-	o.Apply(1)
+	o.Call(1)
 	time.Sleep(time.Millisecond)
 	if x != 0 {
 		t.Errorf("x = %v, want %v", x, 0)
@@ -60,11 +60,11 @@ func TestFunc_CallAfterStop(t *testing.T) {
 }
 
 func TestFunc_StopCallRace(t *testing.T) {
-	o := NewFunc(math.MaxUint8, func(interface{}) {})
+	o := NewFuncService(math.MaxUint8, func(interface{}) {})
 	time.Sleep(time.Millisecond)
 
-	oCall := NewLoop(func() {
-		o.Apply(0)
+	oCall := NewLoopService(func() {
+		o.Call(0)
 	})
 	time.Sleep(10 * time.Millisecond)
 	o.Stop()

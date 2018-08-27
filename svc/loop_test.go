@@ -7,13 +7,13 @@ import (
 )
 
 func Test_NewLoopWithNil(t *testing.T) {
-	o := NewLoop(nil)
+	o := NewLoopService(nil)
 	o.Stop()
 }
 
 func Test_Loop(t *testing.T) {
 	i := 0
-	o := NewLoop(func() {
+	o := NewLoopService(func() {
 		i++
 	})
 	defer o.Stop()
@@ -30,7 +30,7 @@ func Test_LoopJoin(t *testing.T) {
 	startSignal := make(chan struct{})
 	startOnce := sync.Once{}
 	i := 0
-	o := NewLoop(func() {
+	o := NewLoopService(func() {
 		startOnce.Do(func() {
 			startSignal <- struct{}{}
 		})

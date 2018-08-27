@@ -69,8 +69,8 @@ func TestPool_NumGoroutine(t *testing.T) {
 //	var delay = time.Duration(0)
 //	var timeout = 100 * time.Millisecond
 //	f = PoolOf(f, &min, &max, &delay, &timeout)
-//	fs := NewFunc(100, f)
-//	ngo1 += 1 // coroutine created by NewFunc()
+//	fs := NewFuncService(100, f)
+//	ngo1 += 1 // coroutine created by NewFuncService()
 //
 //	defer fs.Join()
 //	defer fs.Stop()
@@ -102,7 +102,7 @@ func TestPool_NumGoroutine(t *testing.T) {
 //	var delay = 100 * time.Millisecond
 //	var timeout = delay
 //	f = PoolOf(f, &min, &max, &delay, &timeout)
-//	fs := NewFunc(math.MaxUint16, f)
+//	fs := NewFuncService(math.MaxUint16, f)
 //	defer fs.Join()
 //	defer fs.Stop()
 //	defer time.Sleep(time.Millisecond)

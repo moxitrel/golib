@@ -1,18 +1,18 @@
 /*
 
-NewFunc (Any -> ())	: "loop f(arg)"
+NewFuncService (Any -> ())	: "loop f(arg)"
 	Apply Any : "sched f(arg)"
 
 *** e.g.
 
-// 1. define a new type derive Func
+// 1. define a new type derive FuncService
 type T struct {
-	*Func
+	*FuncService
 }
 
 // 2. define construction
 func NewF() T {
-	return &F{NewFunc(func(argAny interface{}) {
+	return &F{NewFuncService(func(argAny interface{}) {
 		arg := argAny.(ArgT)	// recover the type
 		...
 	})}
@@ -20,7 +20,7 @@ func NewF() T {
 
 // 3. override Apply() with desired type
 func (o *T) Apply(x ArgT) {
-	o.Func.Apply(x)
+	o.FuncService.Apply(x)
 }
 
 */
@@ -31,8 +31,8 @@ import (
 	"github.com/moxitrel/golib"
 )
 
-type Func struct {
-	*Loop
+type FuncService struct {
+	*LoopService
 	fun      func(interface{})
 	args     chan interface{}
 	stopOnce *sync.Once
@@ -40,18 +40,18 @@ type Func struct {
 
 type _StopSignal struct{}
 
-func NewFunc(bufferCapacity uint, fun func(arg interface{})) (v *Func) {
+func NewFuncService(bufferCapacity uint, fun func(arg interface{})) (v *FuncService) {
 	if fun == nil {
 		golib.Warn("<fun> shouldn't be nil!\n")
 		fun = func(_ interface{}) {}
 	}
 
-	v = &Func{
+	v = &FuncService{
 		fun:      fun,
 		args:     make(chan interface{}, bufferCapacity),
 		stopOnce: new(sync.Once),
 	}
-	v.Loop = NewLoop(func() {
+	v.LoopService = NewLoopService(func() {
 		for {
 			arg := <-v.args
 			if arg != (_StopSignal{}) {
@@ -65,14 +65,14 @@ func NewFunc(bufferCapacity uint, fun func(arg interface{})) (v *Func) {
 	return
 }
 
-func (o *Func) Stop() {
+func (o *FuncService) Stop() {
 	o.stopOnce.Do(func() {
-		o.Loop.Stop()
+		o.LoopService.Stop()
 		o.args <- _StopSignal{}
 	})
 }
 
-func (o *Func) Apply(arg interface{}) {
+func (o *FuncService) Call(arg interface{}) {
 	if o.state == RUNNING {
 		o.args <- arg
 	}

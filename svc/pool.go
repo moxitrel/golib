@@ -65,8 +65,8 @@ func (o *Pool) newProcess() bool {
 		return false
 	}
 
-	var loop *Loop
-	loop = NewLoop(func() {
+	var loop *LoopService
+	loop = NewLoopService(func() {
 		select {
 		case arg := <-o.arg:
 			o.fun(arg)

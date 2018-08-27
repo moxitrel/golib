@@ -9,11 +9,11 @@ import (
 
 //
 //type StringMessager struct {
-//	*Route
+//	*HandlerService
 //}
-//func StringMessagerOf(x *Route, f func(string)) (v *StringMessager) {
+//func StringMessagerOf(x *HandlerService, f func(string)) (v *StringMessager) {
 //	v = &StringMessager{
-//		Route: x,
+//		HandlerService: x,
 //	}
 //	v.Register(*new(string), func(x interface{}) {
 //		f(x.(string))
@@ -21,11 +21,11 @@ import (
 //	return v
 //}
 //func (o *StringMessager) AddMessage(x string) {
-//	o.Route.AddMessage(x)
+//	o.HandlerService.AddMessage(x)
 //}
 //
 func TestRoute_RegisterAndCall(t *testing.T) {
-	o := NewRoute(3)
+	o := NewHandlerService(3)
 	defer o.Stop()
 
 	oT := reflect.Invalid
@@ -36,19 +36,19 @@ func TestRoute_RegisterAndCall(t *testing.T) {
 		oT = reflect.Int
 	})
 
-	o.Apply("a")
+	o.Handle("a")
 	time.Sleep(time.Millisecond)
 	if oT != reflect.String {
 		t.Errorf("oT = %s, want %s", reflect.String, oT)
 	}
-	o.Apply(5)
+	o.Handle(5)
 	time.Sleep(time.Millisecond)
 	if oT != reflect.Int {
 		t.Errorf("oT = %s, want %s", reflect.Int, oT)
 	}
 	// no handler
-	o.Apply(nil)
-	o.Apply(9)
+	o.Handle(nil)
+	o.Handle(9)
 }
 
 func TestHandler(t *testing.T) {
@@ -61,12 +61,17 @@ func TestHandler(t *testing.T) {
 	//	t.Log("func")
 	//})
 	handler.Register(reflect.TypeOf(int(0)), nil)
-	handler.Apply(1)
-	handler.Apply(2)
-	handler.Apply([]byte{1,2,3})
+	handler.Handle(1)
+	handler.Handle(2)
+	handler.Handle(nil)
+	handler.Handle([]byte{1,2,3})
 }
 
 func TestMap(t *testing.T) {
 	m := make(map[interface{}]interface{})
 	delete(m, 0)
+}
+
+func TestHandleNil(t *testing.T) {
+	t.Logf("%t", reflect.TypeOf(nil))
 }

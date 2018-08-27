@@ -1,10 +1,10 @@
 /*
-func NewTime(accuracy time.Duration) *Time
-func (*Time) Add   	(func(*Task))					*Task
-func (*Time) Delete	(*Task)
+func NewTimeService(accuracy time.Duration) *TimeService
+func (*TimeService) Add   	(func(*Task))					*Task
+func (*TimeService) Delete	(*Task)
 
-func (*Time) At    	(time.Time    	 , func()) 		*Task
-func (*Time) Every  (time.Duration	 , func()) 		*Task
+func (*TimeService) At    	(time.TimeService    	 , func()) 		*Task
+func (*TimeService) Every  (time.Duration	 , func()) 		*Task
 */
 package svc
 
@@ -16,18 +16,18 @@ import (
 
 type Task struct{ do func(*Task) }
 
-type Time struct {
-	*Loop
+type TimeService struct {
+	*LoopService
 	accuracy time.Duration
 	tasks    sets.Set
 }
 
-func NewTime(accuracy time.Duration) (v *Time) {
-	v = &Time{
+func NewTimeService(accuracy time.Duration) (v *TimeService) {
+	v = &TimeService{
 		accuracy: accuracy,
 		tasks:    hashset.New(),
 	}
-	v.Loop = NewLoop(func() {
+	v.LoopService = NewLoopService(func() {
 		now := time.Now()
 		time.Sleep(now.Truncate(v.accuracy).Add(v.accuracy).Sub(now) % v.accuracy)
 
@@ -39,7 +39,7 @@ func NewTime(accuracy time.Duration) (v *Time) {
 	return
 }
 
-func (o *Time) Add(do func(v *Task)) (v *Task) {
+func (o *TimeService) Add(do func(v *Task)) (v *Task) {
 	v = &Task{
 		do: do,
 	}
@@ -49,13 +49,13 @@ func (o *Time) Add(do func(v *Task)) (v *Task) {
 	return
 }
 
-func (o *Time) Delete(task *Task) {
+func (o *TimeService) Delete(task *Task) {
 	o.tasks.Remove(task)
 }
 
 // Run thunk() once at <future>.
 // If future is before now, run at next check
-func (o *Time) At(future time.Time, thunk func()) (v *Task) {
+func (o *TimeService) At(future time.Time, thunk func()) (v *Task) {
 	v = o.Add(func(v *Task) {
 		if !time.Now().Before(future) {
 			thunk()
@@ -66,7 +66,7 @@ func (o *Time) At(future time.Time, thunk func()) (v *Task) {
 }
 
 // Run thunk() every <interval> ns
-func (o *Time) Every(interval time.Duration, thunk func()) (v *Task) {
+func (o *TimeService) Every(interval time.Duration, thunk func()) (v *Task) {
 	tnext := time.Now().Truncate(interval).Add(interval)
 	v = o.Add(func(v *Task) {
 		now := time.Now()

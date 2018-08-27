@@ -1,5 +1,5 @@
 /*
-NewLoop f	: "Loop f() in background."
+NewLoopService f	: "LoopService f() in background."
 		Stop: "Signal service to stop."
 		Join: "Wait service to stop."
 */
@@ -12,14 +12,14 @@ const (
 	RUNNING
 )
 
-type Loop struct {
+type LoopService struct {
 	thunk func()
 	state int
 	wg    *sync.WaitGroup
 }
 
-func NewLoop(thunk func()) (v *Loop) {
-	v = &Loop{
+func NewLoopService(thunk func()) (v *LoopService) {
+	v = &LoopService{
 		thunk: thunk,
 		state: RUNNING,
 		wg:    new(sync.WaitGroup),
@@ -37,10 +37,10 @@ func NewLoop(thunk func()) (v *Loop) {
 	return
 }
 
-func (o *Loop) Stop() {
+func (o *LoopService) Stop() {
 	o.state = STOPPED
 }
 
-func (o *Loop) Join() {
+func (o *LoopService) Join() {
 	o.wg.Wait()
 }

@@ -1,6 +1,6 @@
 /*
 
-NewRoute:
+NewHandlerService:
 	Register   	x cb:
 	Apply     	x   : "sched cb(x)"
 
@@ -18,20 +18,22 @@ var validateMapKeyCache = new(sync.Map)
 func ValidateMapKey(keyType reflect.Type) (v bool) {
 	v = true
 
-	switch keyType.Kind() {
-	case reflect.Invalid, reflect.Func, reflect.Slice, reflect.Map:
-		v = false
-	case reflect.Struct:
-		if anyV, ok := validateMapKeyCache.Load(keyType); ok {
-			v = anyV.(bool)
-		} else {
-			for i := 0; i < keyType.NumField(); i++ {
-				if ValidateMapKey(keyType.Field(i).Type) == false {
-					v = false
-					break
+	if keyType != nil {
+		switch keyType.Kind() {
+		case reflect.Invalid, reflect.Func, reflect.Slice, reflect.Map:
+			v = false
+		case reflect.Struct:
+			if anyV, ok := validateMapKeyCache.Load(keyType); ok {
+				v = anyV.(bool)
+			} else {
+				for i := 0; i < keyType.NumField(); i++ {
+					if ValidateMapKey(keyType.Field(i).Type) == false {
+						v = false
+						break
+					}
 				}
+				validateMapKeyCache.Store(keyType, v)
 			}
-			validateMapKeyCache.Store(keyType, v)
 		}
 	}
 
@@ -65,7 +67,7 @@ func (o Handler) Register(arg interface{}, fun func(interface{})) {
 	}
 }
 
-func (o Handler) Apply(arg interface{}) {
+func (o Handler) Handle(arg interface{}) {
 	// skip invalid key type
 	if ValidateMapKey(reflect.TypeOf(arg)) == false {
 		golib.Warn("%t isn't a valid map key type!\n", arg)
@@ -81,17 +83,17 @@ func (o Handler) Apply(arg interface{}) {
 	fun(arg)
 }
 
-type Route struct {
-	*Func
+type HandlerService struct {
+	*FuncService
 	Handler
 }
 
-func NewRoute(bufferCapacity uint) (v Route) {
+func NewHandlerService(bufferCapacity uint) (v HandlerService) {
 	v.Handler = NewHandler()
-	v.Func = NewFunc(bufferCapacity, v.Handler.Apply)
+	v.FuncService = NewFuncService(bufferCapacity, v.Handler.Handle)
 	return
 }
 
-func (o *Route) Apply(arg interface{}) {
-	o.Func.Apply(arg)
+func (o *HandlerService) Handle(arg interface{}) {
+	o.FuncService.Call(arg)
 }

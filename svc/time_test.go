@@ -8,7 +8,7 @@ import (
 func Test_TimeEvery(t *testing.T) {
 	var accuracy = 100 * time.Millisecond
 
-	o := NewTime(accuracy)
+	o := NewTimeService(accuracy)
 	defer o.Join()
 	defer o.Stop()
 
