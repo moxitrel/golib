@@ -1,10 +1,8 @@
 package golib
 
 import (
-	"net"
-	"testing"
-	"time"
-)
+		"testing"
+	)
 
 func TestWriteAll(t *testing.T) {
 	// panic if writer = nil
@@ -17,15 +15,4 @@ func TestWriteAll(t *testing.T) {
 		}
 	}()
 	WriteAll(nil, nil)
-}
-
-func TestTcpOnce(t *testing.T) {
-	WithTcpWrite(
-		"baidu.com:80",
-		[]byte("GET /index.htm HTTP/1.1\r\nContent-Length: 0\r\n\r\n"),
-		func(_ net.Conn, rsp []byte) bool {
-			t.Logf("%s", rsp)
-			return true
-		},
-		time.Minute)
 }
