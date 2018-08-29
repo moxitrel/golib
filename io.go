@@ -3,7 +3,7 @@ package golib
 import (
 	"io"
 	"net"
-	)
+)
 
 // Send all bytes in data to writer.
 func WriteAll(writer io.Writer, data []byte) error {
