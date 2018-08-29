@@ -109,7 +109,7 @@ func NewHandlerService(bufferCapacity uint) (v HandlerService) {
 		keyArg := anyKeyArg.([]interface{})
 		key := keyArg[0]
 		arg := keyArg[1]
-		v.Handle(key, arg)
+		v.Handler.Handle(key, arg)
 	})
 	return
 }
