@@ -80,7 +80,7 @@ func (o Handler) Handle(key interface{}, arg interface{}) {
 		return
 	}
 
-	fun(key)
+	fun(arg)
 }
 
 /*
