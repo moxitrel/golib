@@ -12,7 +12,7 @@ variables:
 
 before_script:
   - "apt update && apt install -y --no-install-recommends golang"   # install golang
-  - "mkdir -p /go/src && ln -s /builds /go/src/github.com"          # make standard project structure
+  - "mkdir -p /go/src && cp -r /builds /go/src/github.com"          # make standard project structure
   - "./depend.sh"                                                   # install dependency
 
 static_analysis:
