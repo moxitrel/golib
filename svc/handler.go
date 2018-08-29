@@ -49,40 +49,55 @@ func NewHandler() Handler {
 
 // arg: arg's type shoudn't be function, slice, map or struct contains function, slice or map field
 // fun: nil, delete the handler for arg
-func (o Handler) Register(arg interface{}, fun func(interface{})) {
+func (o Handler) Register(key interface{}, fun func(interface{})) {
 	// assert invalid key type
-	if ValidateMapKey(reflect.TypeOf(arg)) == false {
-		golib.Panic("%t isn't a valid map key type!\n", arg)
+	if ValidateMapKey(reflect.TypeOf(key)) == false {
+		golib.Panic("%t isn't a valid map key type!\n", key)
 		return
 	}
 
 	if fun == nil {
 		// delete handler
-		delete(o, arg)
+		delete(o, key)
 	} else {
-		if o[arg] != nil {
-			golib.Warn("%v is already registered and will be overwritten!\n", arg)
+		if o[key] != nil {
+			golib.Warn("%v is already registered and will be overwritten!\n", key)
 		}
-		o[arg] = fun
+		o[key] = fun
 	}
 }
 
-func (o Handler) Handle(arg interface{}) {
-	// skip invalid key type
-	if ValidateMapKey(reflect.TypeOf(arg)) == false {
-		golib.Warn("%t isn't a valid map key type!\n", arg)
+func (o Handler) Handle(key interface{}, arg interface{}) {
+	// assert invalid key type
+	if ValidateMapKey(reflect.TypeOf(key)) == false {
+		golib.Panic("%t isn't a valid map key type!\n", key)
 		return
 	}
 
-	fun := o[arg]
+	fun := o[key]
 	if fun == nil {
-		golib.Warn("%v doesn't has a handler!\n", arg)
+		golib.Warn("%v doesn't has a handler!\n", key)
 		return
 	}
 
-	fun(arg)
+	fun(key)
 }
 
+/*
+
+// 1. define a new type derive HandlerService
+//
+type MyHandlerService struct {
+	HandlerService
+}
+
+// 2. override Handle() with pre-defined key() function
+//
+func (o MyHandlerService) Handle(arg interface{}) {
+	o.HandlerService.Handle(key(arg), arg)
+}
+
+*/
 type HandlerService struct {
 	*FuncService
 	Handler
@@ -90,10 +105,15 @@ type HandlerService struct {
 
 func NewHandlerService(bufferCapacity uint) (v HandlerService) {
 	v.Handler = NewHandler()
-	v.FuncService = NewFuncService(bufferCapacity, v.Handler.Handle)
+	v.FuncService = NewFuncService(bufferCapacity, func(anyKeyArg interface{}) {
+		keyArg := anyKeyArg.([]interface{})
+		key := keyArg[0]
+		arg := keyArg[1]
+		v.Handle(key, arg)
+	})
 	return
 }
 
-func (o *HandlerService) Handle(arg interface{}) {
-	o.FuncService.Call(arg)
+func (o *HandlerService) Handle(key interface{}, arg interface{}) {
+	o.FuncService.Call([]interface{}{key, arg})
 }
