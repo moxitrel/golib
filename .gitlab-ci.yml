@@ -1,0 +1,22 @@
+# env, can be referenced in script
+#variables:
+#  <var>: <val>
+#
+#  GIT_SUBMODULE_STRATEGY: <...>
+#
+#  CI_PROJECT_DIR: /builds         # set project root, default cloned into "/builds/<user>/<repo>"
+#
+#  GET_SOURCES_ATTEMPTS: 1         # Number to fetch    sources  , default 1
+#  ARTIFACT_DOWNLOAD_ATTEMPTS: 1   # Number to download artifacts, defualt 1
+#  RESTORE_CACHE_ATTEMPTS: 1       # Number to restore  cache    , defualt 1
+
+before_script:
+  - "apt update && apt install -y --no-install-recommends golang"   # install golang
+  - "ln -s /builds /go/src/github.com"                              # make standard project structure
+  - "./depend.sh"                                                   # install dependency
+
+static_analysis:
+  script:
+    - "./static_analysis.sh"
+    - "./build.sh"  # build test
+    - "./test.sh"

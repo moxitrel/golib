@@ -17,7 +17,7 @@
 #	-trace        <out> //execution trace
 #
 
-PKG=""
+PKG="./..."
 TEST_REGEX=""
 BENCH_REGEX=""
 
