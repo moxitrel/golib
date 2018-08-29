@@ -1,6 +1,6 @@
 # env, can be referenced in script
-#variables:
-#  <var>: <val>
+variables:
+  GOPATH: /go
 #
 #  GIT_SUBMODULE_STRATEGY: <...>
 #
