@@ -1,8 +1,8 @@
 package golib
 
 import (
-		"testing"
-	)
+	"testing"
+)
 
 func TestWriteAll(t *testing.T) {
 	// panic if writer = nil
