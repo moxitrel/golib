@@ -98,7 +98,7 @@ type HandlerService struct {
 	Handler
 }
 
-func NewHandlerService(bufferCapacity uint) (v *HandlerService) {
+func NewHandlerService(bufferCapacity uint) (v HandlerService) {
 	v.Handler = NewHandler()
 	v.FuncService = NewFuncService(bufferCapacity, func(anyKeyArg interface{}) {
 		keyArg := anyKeyArg.([]interface{})
@@ -109,7 +109,7 @@ func NewHandlerService(bufferCapacity uint) (v *HandlerService) {
 	return
 }
 
-func (o *HandlerService) Handle(key interface{}, arg interface{}) {
+func (o HandlerService) Handle(key interface{}, arg interface{}) {
 	if o.Get(key) == nil {
 		golib.Warn("%v doesn't has a handler!\n", key)
 		return
@@ -117,6 +117,6 @@ func (o *HandlerService) Handle(key interface{}, arg interface{}) {
 	o.HandleWithoutCheck(key, arg)
 }
 
-func (o *HandlerService) HandleWithoutCheck(key interface{}, arg interface{}) {
+func (o HandlerService) HandleWithoutCheck(key interface{}, arg interface{}) {
 	o.FuncService.Call([]interface{}{key, arg})
 }
