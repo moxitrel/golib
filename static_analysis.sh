@@ -1,6 +1,9 @@
 #!/bin/sh
 
 
+PKG="./..."
+
+
 # repository root
 cd $(dirname $0)
 
@@ -12,6 +15,5 @@ cd $(dirname $0)
 #
 cmd=" go vet "
 #cmd=" $cmd -x "              # -x, prints commands as they are executed
+$cmd $PKG
 
-
-$cmd

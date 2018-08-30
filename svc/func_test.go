@@ -1,9 +1,9 @@
 package svc
 
 import (
+	"math"
 	"testing"
 	"time"
-	"math"
 )
 
 func Test_StopSignal_Uniqueness(t *testing.T) {
@@ -50,10 +50,10 @@ func TestFunc_CallAfterStop(t *testing.T) {
 		x = arg.(int)
 	})
 	o.Stop()
+	time.Sleep(time.Millisecond)
 
 	// no effect after stop
 	o.Call(1)
-	time.Sleep(time.Millisecond)
 	if x != 0 {
 		t.Errorf("x = %v, want %v", x, 0)
 	}

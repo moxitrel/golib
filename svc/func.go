@@ -27,8 +27,8 @@ func (o *T) Apply(x ArgT) {
 package svc
 
 import (
-	"sync"
 	"github.com/moxitrel/golib"
+	"sync"
 )
 
 type FuncService struct {

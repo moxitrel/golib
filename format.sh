@@ -1,8 +1,7 @@
 #!/bin/sh
 
 
-#export GOPATH=${GOPATH:-$(go env GOPATH)}
-
+PKG="./..."
 
 # repository root
 cd $(dirname $0)
@@ -25,4 +24,4 @@ cd $(dirname $0)
 cmd=" go fmt "
 #cmd=" $cmd -x "     # -x, print commands as they are executed
 
-$cmd                # default format package in current directory
+$cmd $PKG

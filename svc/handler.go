@@ -1,15 +1,15 @@
 /*
 
-NewHandlerService:
-	Set   	 x cb: "add handler for x"
+NewHandlerService bufferSize:
+	Set   	 x cb: "add handler for x.Key"
 	Handle   x   : "sched cb(x)"
 
 */
 package svc
 
 import (
-	"reflect"
 	"github.com/moxitrel/golib"
+	"reflect"
 	"sync"
 )
 
@@ -40,43 +40,6 @@ func ValidateMapKey(keyType reflect.Type) (v bool) {
 	return
 }
 
-// not thread-safe
-type Handler map[interface{}]func(interface{})
-
-func NewHandler() Handler {
-	return make(Handler)
-}
-
-// key: key's type shoudn't be function, slice, map or struct contains function, slice or map field
-// fun: nil, delete the handler for key
-func (o Handler) Set(key interface{}, fun func(arg interface{})) {
-	// assert invalid key type
-	if ValidateMapKey(reflect.TypeOf(key)) == false {
-		golib.Panic("%t isn't a valid map key type!\n", key)
-		return
-	}
-
-	if fun == nil {
-		// delete handler
-		delete(o, key)
-	} else {
-		o[key] = fun
-	}
-}
-
-func (o Handler) Get(key interface{}) (fun func(arg interface{})) {
-	if ValidateMapKey(reflect.TypeOf(key)) == false {
-		golib.Warn("%t isn't a valid map key type!\n", key)
-		return
-	}
-	return o[key]
-}
-
-// Skip check, may be panic if things ars not expected
-func (o Handler) HandleWithoutCheckout(key interface{}, arg interface{}) {
-	fun := o[key]
-	fun(arg)
-}
 
 /*
 
@@ -95,28 +58,50 @@ func (o MyHandlerService) Handle(arg interface{}) {
 */
 type HandlerService struct {
 	*FuncService
-	Handler
+	handlers map[interface{}]func(interface{})
 }
 
 func NewHandlerService(bufferCapacity uint) (v HandlerService) {
-	v.Handler = NewHandler()
+	v.handlers = make(map[interface{}]func(interface{}))
 	v.FuncService = NewFuncService(bufferCapacity, func(anyKeyArg interface{}) {
 		keyArg := anyKeyArg.([]interface{})
 		key := keyArg[0]
 		arg := keyArg[1]
-		v.Handler.HandleWithoutCheckout(key, arg)
+
+		fun := v.handlers[key]
+		fun(arg)
 	})
 	return
 }
 
+// key: key's type shoudn't be function, slice, map or struct contains function, slice or map field
+func (o HandlerService) Set(key interface{}, fun func(arg interface{})) {
+	// assert invalid key type
+	if ValidateMapKey(reflect.TypeOf(key)) == false {
+		golib.Panic("%t isn't a valid map key type!\n", key)
+		return
+	}
+	o.SetWithoutCheck(key, fun)
+}
 func (o HandlerService) Handle(key interface{}, arg interface{}) {
-	if o.Get(key) == nil {
-		golib.Warn("%v doesn't has a handler!\n", key)
+	if ValidateMapKey(reflect.TypeOf(key)) == false {
+		golib.Warn("%t isn't a valid map key type!\n", key)
+		return
+	}
+	if o.handlers[key] == nil {
+		golib.Warn("%v, handler doesn't exist!\n", key)
 		return
 	}
 	o.HandleWithoutCheck(key, arg)
 }
-
+func (o HandlerService) SetWithoutCheck(key interface{}, fun func(arg interface{})) {
+	if fun == nil {
+		// delete handler
+		delete(o.handlers, key)
+	} else {
+		o.handlers[key] = fun
+	}
+}
 func (o HandlerService) HandleWithoutCheck(key interface{}, arg interface{}) {
 	o.FuncService.Call([]interface{}{key, arg})
 }

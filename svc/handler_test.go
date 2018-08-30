@@ -1,24 +1,10 @@
 package svc
 
 import (
-	"testing"
 	"reflect"
+	"testing"
 	"time"
 )
-
-func TestHandler_Register_Dup(t *testing.T) {
-	h := NewHandler()
-	flag := 0
-	f1 := func(_ interface{}) { flag = 1 }
-	f2 := func(_ interface{}) { flag = 2 }
-
-	h.Set(1, f1)
-	h.Set(1, f2)
-	h.HandleWithoutCheckout(1, struct{}{})
-	if flag != 2 {
-		t.Errorf("flag = %v, want 2", flag)
-	}
-}
 
 func TestHandlerService_Example(t *testing.T) {
 	key := func(arg interface{}) reflect.Type {
@@ -32,7 +18,7 @@ func TestHandlerService_Example(t *testing.T) {
 	})
 	time.Sleep(time.Millisecond)
 
-	arg:= "11:56"
+	arg := "11:56"
 	o.Handle(key(arg), arg)
 	time.Sleep(time.Millisecond)
 	if v != arg {
