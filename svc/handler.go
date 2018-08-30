@@ -1,8 +1,8 @@
 /*
 
 NewHandlerService:
-	Register   	x cb:
-	Apply     	x   : "sched cb(x)"
+	Set   	 x cb: "add handler for x"
+	Handle   x   : "sched cb(x)"
 
 */
 package svc
@@ -47,9 +47,9 @@ func NewHandler() Handler {
 	return make(Handler)
 }
 
-// arg: arg's type shoudn't be function, slice, map or struct contains function, slice or map field
-// fun: nil, delete the handler for arg
-func (o Handler) Register(key interface{}, fun func(interface{})) {
+// key: key's type shoudn't be function, slice, map or struct contains function, slice or map field
+// fun: nil, delete the handler for key
+func (o Handler) Set(key interface{}, fun func(arg interface{})) {
 	// assert invalid key type
 	if ValidateMapKey(reflect.TypeOf(key)) == false {
 		golib.Panic("%t isn't a valid map key type!\n", key)
@@ -60,26 +60,21 @@ func (o Handler) Register(key interface{}, fun func(interface{})) {
 		// delete handler
 		delete(o, key)
 	} else {
-		if o[key] != nil {
-			golib.Warn("%v is already registered and will be overwritten!\n", key)
-		}
 		o[key] = fun
 	}
 }
 
-func (o Handler) Handle(key interface{}, arg interface{}) {
-	// assert invalid key type
+func (o Handler) Get(key interface{}) (fun func(arg interface{})) {
 	if ValidateMapKey(reflect.TypeOf(key)) == false {
-		golib.Panic("%t isn't a valid map key type!\n", key)
+		golib.Warn("%t isn't a valid map key type!\n", key)
 		return
 	}
+	return o[key]
+}
 
+// Skip check, may be panic if things ars not expected
+func (o Handler) HandleWithoutCheckout(key interface{}, arg interface{}) {
 	fun := o[key]
-	if fun == nil {
-		golib.Warn("%v doesn't has a handler!\n", key)
-		return
-	}
-
 	fun(arg)
 }
 
@@ -94,7 +89,7 @@ type MyHandlerService struct {
 // 2. override Handle() with pre-defined key() function
 //
 func (o MyHandlerService) Handle(arg interface{}) {
-	o.HandlerService.Handle(key(arg), arg)
+	o.HandlerService.Handle(arg.Key(), arg)
 }
 
 */
@@ -103,17 +98,25 @@ type HandlerService struct {
 	Handler
 }
 
-func NewHandlerService(bufferCapacity uint) (v HandlerService) {
+func NewHandlerService(bufferCapacity uint) (v *HandlerService) {
 	v.Handler = NewHandler()
 	v.FuncService = NewFuncService(bufferCapacity, func(anyKeyArg interface{}) {
 		keyArg := anyKeyArg.([]interface{})
 		key := keyArg[0]
 		arg := keyArg[1]
-		v.Handler.Handle(key, arg)
+		v.Handler.HandleWithoutCheckout(key, arg)
 	})
 	return
 }
 
 func (o *HandlerService) Handle(key interface{}, arg interface{}) {
+	if o.Get(key) == nil {
+		golib.Warn("%v doesn't has a handler!\n", key)
+		return
+	}
+	o.HandleWithoutCheck(key, arg)
+}
+
+func (o *HandlerService) HandleWithoutCheck(key interface{}, arg interface{}) {
 	o.FuncService.Call([]interface{}{key, arg})
 }
