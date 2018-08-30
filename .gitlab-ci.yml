@@ -12,4 +12,4 @@ static_analysis:
   script:
     - "./static_analysis.sh"
     - "./build.sh"  # build test
-    - "./test.sh"
+#    - "./test.sh"
