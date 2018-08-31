@@ -13,7 +13,7 @@ func TestHandlerService_Example(t *testing.T) {
 	v := ""
 
 	o := NewHandlerService(8)
-	defer func(){
+	defer func() {
 		o.Stop()
 		o.Join()
 	}()

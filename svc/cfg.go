@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	PoolMin     uint32 = 2
-	PoolMax     uint32 = math.MaxUint16
-	PoolDelay          = 200 * time.Millisecond //a proper value should at least 0.1s
-	PoolTimeOut        = time.Minute
+	POOL_MIN     uint16 = 0
+	POOL_MAX     uint16 = math.MaxUint16
+	POOL_DELAY          = 200 * time.Millisecond
+	POOL_TIMEOUT        = time.Minute
 )

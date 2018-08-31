@@ -8,12 +8,14 @@ import (
 
 func Test_Select(t *testing.T) {
 	t.Skipf("skip test select")
+
 	n := 10000 * 10000
 	delay := 100 * time.Millisecond
 	c := make(chan struct{}, n)
 	for i := 0; i < n; i++ {
 		c <- struct{}{}
 	}
+
 	for i := 0; i < n; i++ {
 		select {
 		case <-c:
@@ -28,16 +30,18 @@ func Test_Select(t *testing.T) {
 }
 
 func TestPool_NumGoroutine(t *testing.T) {
-	PoolTimeOut = time.Second
 	ngoBegin := runtime.NumGoroutine()
 
-	// f generates 2 goroutines
-	f := NewPool(func(x interface{}) {
-		time.Sleep(30 * time.Second)
+	min := uint16(2)
+	delay := time.Millisecond
+	timeout := time.Second
+	f := NewPool(func(_ interface{}) {
+		time.Sleep(time.Second)
 	})
-	time.Sleep(time.Millisecond) //wait goroutine started
+	f.SetTime(delay, timeout)
+	f.SetCount(min, POOL_MAX)
 	ngoNewPool := runtime.NumGoroutine()
-	if ngoNewPool != ngoBegin+2 {
+	if ngoNewPool != ngoBegin+int(min) {
 		t.Errorf("Goroutine.Count: %v, want %v", ngoNewPool, ngoBegin+2)
 	}
 
@@ -46,14 +50,14 @@ func TestPool_NumGoroutine(t *testing.T) {
 	for i := 0; i < nCall; i++ {
 		f.Call(nil)
 	}
-	time.Sleep(time.Millisecond)
 	ngoCall := runtime.NumGoroutine()
 	if ngoCall != ngoBegin+nCall {
 		t.Errorf("Goroutine.Count: %v, want %v", ngoCall, ngoBegin+nCall)
 	}
 
-	// f remains 2 goroutines after timeout
-	time.Sleep(30*time.Second + PoolTimeOut)
+	for f.cur > uint32(f.min) {
+		time.Sleep(f.timeout)
+	}
 	ngoTimeout := runtime.NumGoroutine()
 	if ngoTimeout != ngoNewPool {
 		t.Errorf("Goroutine.Count: %v, want %v", ngoTimeout, ngoNewPool)
