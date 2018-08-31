@@ -11,5 +11,4 @@ before_script:
 static_analysis:
   script:
     - "./static_analysis.sh"
-    - "./build.sh"  # build test
 #    - "./test.sh"

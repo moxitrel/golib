@@ -13,6 +13,10 @@ func TestHandlerService_Example(t *testing.T) {
 	v := ""
 
 	o := NewHandlerService(8)
+	defer func(){
+		o.Stop()
+		o.Join()
+	}()
 	o.Set(key(""), func(arg interface{}) {
 		v = arg.(string)
 	})
