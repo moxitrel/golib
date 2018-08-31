@@ -11,4 +11,4 @@ before_script:
 static_analysis:
   script:
     - "./static_analysis.sh"
-    - "./test.sh"
+#    - "./test.sh"
