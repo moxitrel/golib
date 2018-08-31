@@ -68,15 +68,20 @@ func TestPool_Example(t *testing.T) {
 	ts := make([]time.Time, 0, 100)
 	delay := 10 * time.Millisecond
 	timeout := (delay + 5*time.Millisecond) * time.Duration(cap(ts))
+	min := uint16(1)
+	max := POOL_MAX
+
 	f := NewPool(func(x interface{}) {
 		ts = append(ts, time.Now())
 		time.Sleep(timeout)
 	})
 	f.SetTime(delay, timeout)
+	f.SetCount(min, max)
 
 	for i := 0; i < cap(ts); i++ {
 		f.Call(nil)
 	}
+
 	for i := 0; i < len(ts)-1; i++ {
 		dt := ts[i+1].Sub(ts[i])
 		t.Logf("dt: %v", dt)
@@ -84,7 +89,7 @@ func TestPool_Example(t *testing.T) {
 			t.Errorf("dt = %v, want [%v, %v]", dt, delay, delay+10*time.Millisecond)
 		}
 	}
-
+	f.SetCount(0, f.max)
 	for f.cur > 0 {
 		time.Sleep(f.timeout / 2)
 	}
