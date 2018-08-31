@@ -40,7 +40,6 @@ func ValidateMapKey(keyType reflect.Type) (v bool) {
 	return
 }
 
-
 /*
 
 // 1. define a new type derive HandlerService
@@ -81,7 +80,13 @@ func (o HandlerService) Set(key interface{}, fun func(arg interface{})) {
 		golib.Panic("%t isn't a valid map key type!\n", key)
 		return
 	}
-	o.SetWithoutCheck(key, fun)
+
+	if fun == nil {
+		// delete handler
+		delete(o.handlers, key)
+	} else {
+		o.handlers[key] = fun
+	}
 }
 func (o HandlerService) Handle(key interface{}, arg interface{}) {
 	if ValidateMapKey(reflect.TypeOf(key)) == false {
@@ -94,14 +99,7 @@ func (o HandlerService) Handle(key interface{}, arg interface{}) {
 	}
 	o.HandleWithoutCheck(key, arg)
 }
-func (o HandlerService) SetWithoutCheck(key interface{}, fun func(arg interface{})) {
-	if fun == nil {
-		// delete handler
-		delete(o.handlers, key)
-	} else {
-		o.handlers[key] = fun
-	}
-}
+
 func (o HandlerService) HandleWithoutCheck(key interface{}, arg interface{}) {
 	o.FuncService.Call([]interface{}{key, arg})
 }
