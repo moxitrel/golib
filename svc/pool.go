@@ -26,7 +26,7 @@ func NewPool(fun func(interface{})) (v *Pool) {
 	v = &Pool{
 		fun:     fun,
 		arg:     make(chan interface{}),
-		min:     POOL_MIN,
+		min:     0,
 		cur:     0,
 		max:     POOL_MAX,
 		delay:   POOL_DELAY, // a proper value should at least 0.1s

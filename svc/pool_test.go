@@ -84,9 +84,8 @@ func TestPool_Example(t *testing.T) {
 
 	for i := 0; i < len(ts)-1; i++ {
 		dt := ts[i+1].Sub(ts[i])
-		t.Logf("dt: %v", dt)
 		if dt < delay || dt > delay+100*time.Millisecond {
-			t.Errorf("dt = %v, want [%v, %v]", dt, delay, delay+10*time.Millisecond)
+			t.Errorf("%v: dt = %v, want [%v, %v]", i, dt, delay, delay+10*time.Millisecond)
 		}
 	}
 	f.SetCount(0, f.max)
