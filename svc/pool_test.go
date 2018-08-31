@@ -64,79 +64,28 @@ func TestPool_NumGoroutine(t *testing.T) {
 	}
 }
 
-// 2. all created coroutine should quit if set min = 0
-//func Test_LimitWrapMin(t *testing.T) {
-//	ngo1 := runtime.NumGoroutine()
-//
-//	f := func(x interface{}) {}
-//	var min uint = 7
-//	var max uint = 100
-//	var delay = time.Duration(0)
-//	var timeout = 100 * time.Millisecond
-//	f = PoolOf(f, &min, &max, &delay, &timeout)
-//	fs := NewFuncService(100, f)
-//	ngo1 += 1 // coroutine created by NewFuncService()
-//
-//	defer fs.Join()
-//	defer fs.Stop()
-//	defer time.Sleep(time.Millisecond)
-//
-//	ngo2 := runtime.NumGoroutine()
-//	if ngo1+int(min) != ngo2 {
-//		t.Errorf("Goroutine.Count: %v, want %v", ngo2, ngo1+int(min))
-//	}
-//
-//	// 2.
-//	min = 0
-//	time.Sleep(2 * timeout)
-//	ngo2 = runtime.NumGoroutine()
-//	if ngo1 != ngo2 {
-//		t.Errorf("Goroutine.Count: %v, want %v", ngo2, ngo1+int(min))
-//	}
-//}
+func TestPool_Example(t *testing.T) {
+	ts := make([]time.Time, 0, 100)
+	delay := 10 * time.Millisecond
+	timeout := (delay + 5*time.Millisecond) * time.Duration(cap(ts))
+	f := NewPool(func(x interface{}) {
+		ts = append(ts, time.Now())
+		time.Sleep(timeout)
+	})
+	f.SetTime(delay, timeout)
 
-// 2. all created coroutine should quit if set min = 0
-//func Test_LimitWrapTimeout(t *testing.T) {
-//	f := func(x interface{}) {
-//		t.Logf("%v", time.Now())
-//		time.Sleep(100 * time.Millisecond)
-//	}
-//
-//	var min uint = 1
-//	var max uint = 100
-//	var delay = 100 * time.Millisecond
-//	var timeout = delay
-//	f = PoolOf(f, &min, &max, &delay, &timeout)
-//	fs := NewFuncService(math.MaxUint16, f)
-//	defer fs.Join()
-//	defer fs.Stop()
-//	defer time.Sleep(time.Millisecond)
-//
-//	for i := 0; i < 100; i++ {
-//		fs.Apply(nil)
-//	}
-//}
+	for i := 0; i < cap(ts); i++ {
+		f.Call(nil)
+	}
+	for i := 0; i < len(ts)-1; i++ {
+		dt := ts[i+1].Sub(ts[i])
+		t.Logf("dt: %v", dt)
+		if dt < delay || dt > delay+100*time.Millisecond {
+			t.Errorf("dt = %v, want [%v, %v]", dt, delay, delay+10*time.Millisecond)
+		}
+	}
 
-//func TestPool(t *testing.T) {
-//	f := func(x interface{}) {
-//		if x == nil {
-//			return
-//		}
-//		y := x.(func())
-//		y()
-//	}
-//	var min uint = 1
-//	var max uint = 1
-//	var delay = 500 * time.Millisecond
-//	var timeout = time.Minute
-//	o := PoolOf(f, &min, &max, &delay, &timeout)
-//
-//	o(nil)
-//	o(func() {
-//		t1 := time.Now()
-//		t2 := time.Now()
-//		t.Logf("%v", t2.Sub(t1))
-//	})
-//
-//	time.Sleep(time.Millisecond)
-//}
+	for f.cur > 0 {
+		time.Sleep(f.timeout / 2)
+	}
+}
