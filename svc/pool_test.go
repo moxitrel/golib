@@ -35,7 +35,7 @@ func TestPool_NumGoroutine(t *testing.T) {
 	min := uint16(2)
 	delay := time.Millisecond
 	timeout := time.Second
-	f := NewPool(func(_ interface{}) {
+	f := NewPool(0, func(_ interface{}) {
 		time.Sleep(time.Second)
 	})
 	f.SetTime(delay, timeout)
@@ -55,7 +55,7 @@ func TestPool_NumGoroutine(t *testing.T) {
 		t.Errorf("Goroutine.Count: %v, want %v", ngoCall, ngoBegin+nCall)
 	}
 
-	for f.cur > uint32(f.min) {
+	for f.cur > int32(f.min) {
 		time.Sleep(f.timeout)
 	}
 	ngoTimeout := runtime.NumGoroutine()
@@ -68,15 +68,13 @@ func TestPool_Example(t *testing.T) {
 	ts := make([]time.Time, 0, 100)
 	delay := 10 * time.Millisecond
 	timeout := (delay + 5*time.Millisecond) * time.Duration(cap(ts))
-	min := uint16(1)
-	max := POOL_MAX
 
-	f := NewPool(func(x interface{}) {
+	f := NewPool(0, func(x interface{}) {
 		ts = append(ts, time.Now())
 		time.Sleep(timeout)
 	})
 	f.SetTime(delay, timeout)
-	f.SetCount(min, max)
+	f.SetCount(1, POOL_MAX)
 
 	for i := 0; i < cap(ts); i++ {
 		f.Call(nil)

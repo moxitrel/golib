@@ -3,18 +3,19 @@ func NewTimeService(accuracy time.Duration) *TimeService
 func (*TimeService) Add   	(func(*Task))					*Task
 func (*TimeService) Delete	(*Task)
 
-func (*TimeService) At    	(time.TimeService    	 , func()) 		*Task
-func (*TimeService) Every  (time.Duration	 , func()) 		*Task
+func (*TimeService) At    	(time.TimeService, func()) 		*Task
+func (*TimeService) Every   (time.Duration	 , func()) 		*Task
 */
 package svc
 
 import (
 	"github.com/emirpasic/gods/sets"
 	"github.com/emirpasic/gods/sets/hashset"
+	"github.com/moxitrel/golib"
 	"time"
 )
 
-type Task struct{ do func(*Task) }
+type Task struct{ do func() }
 
 type TimeService struct {
 	*LoopService
@@ -33,19 +34,21 @@ func NewTimeService(accuracy time.Duration) (v *TimeService) {
 
 		for _, value := range v.tasks.Values() {
 			task := value.(*Task)
-			task.do(task)
+			task.do()
 		}
 	})
 	return
 }
 
-func (o *TimeService) Add(do func(v *Task)) (v *Task) {
+func (o *TimeService) Add(do func()) (v *Task) {
 	v = &Task{
 		do: do,
 	}
-	if do != nil {
-		o.tasks.Add(v)
+	if do == nil {
+		golib.Warn("^do shouldn't be nil!\n")
+		return
 	}
+	o.tasks.Add(v)
 	return
 }
 
@@ -56,7 +59,7 @@ func (o *TimeService) Delete(task *Task) {
 // Run thunk() once at <future>.
 // If future is before now, run at next check
 func (o *TimeService) At(future time.Time, thunk func()) (v *Task) {
-	v = o.Add(func(v *Task) {
+	v = o.Add(func() {
 		if !time.Now().Before(future) {
 			thunk()
 			o.Delete(v)
@@ -68,7 +71,7 @@ func (o *TimeService) At(future time.Time, thunk func()) (v *Task) {
 // Run thunk() every <interval> ns
 func (o *TimeService) Every(interval time.Duration, thunk func()) (v *Task) {
 	tnext := time.Now().Truncate(interval).Add(interval)
-	v = o.Add(func(v *Task) {
+	v = o.Add(func() {
 		now := time.Now()
 		if !now.Before(tnext) {
 			tnext = now.Truncate(interval).Add(interval)

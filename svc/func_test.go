@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func Test_StopSignal_Uniqueness(t *testing.T) {
+func Test_StopSignal(t *testing.T) {
 	type MockStopSignal struct{}
 	mockStopSignal := MockStopSignal{}
 	structStopSignal := struct{}{}
@@ -21,7 +21,7 @@ func Test_StopSignal_Uniqueness(t *testing.T) {
 	}
 }
 
-func TestNewFuncWithNil(t *testing.T) {
+func TestFunc_NewWithNil(t *testing.T) {
 	// no panic
 	o := NewFuncService(math.MaxUint8, nil)
 	defer o.Stop()
@@ -33,7 +33,7 @@ func TestNewFuncWithNil(t *testing.T) {
 	o.Call(struct{}{})
 }
 
-func TestNewFunc(t *testing.T) {
+func TestFunc_New(t *testing.T) {
 	o := NewFuncService(math.MaxUint8, func(x interface{}) {
 		t.Logf("%v", x)
 	})
@@ -60,7 +60,7 @@ func TestFunc_CallAfterStop(t *testing.T) {
 }
 
 func TestFunc_StopCallRace(t *testing.T) {
-	o := NewFuncService(math.MaxUint8, func(interface{}) {})
+	o := NewFuncService(math.MaxUint16, func(interface{}) {})
 	time.Sleep(time.Millisecond)
 
 	oCall := NewLoopService(func() {
@@ -68,8 +68,8 @@ func TestFunc_StopCallRace(t *testing.T) {
 	})
 	time.Sleep(10 * time.Millisecond)
 	o.Stop()
-	o.Join()
 	oCall.Stop()
+	o.Join()
 	oCall.Join()
 	if len(o.args) != 0 {
 		t.Errorf("args.len = %v, want 0", len(o.args))
