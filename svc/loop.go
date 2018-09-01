@@ -5,7 +5,10 @@ NewLoopService f	: "LoopService f() in background."
 */
 package svc
 
-import "sync"
+import (
+	"github.com/moxitrel/golib"
+	"sync"
+)
 
 const (
 	STOPPED = iota
@@ -25,6 +28,7 @@ func NewLoopService(thunk func()) (v *LoopService) {
 		wg:    new(sync.WaitGroup),
 	}
 	if v.thunk == nil {
+		golib.Warn("^thunk shouldn't be nil!\n")
 		return
 	}
 	go func() {

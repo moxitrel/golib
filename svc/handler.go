@@ -57,12 +57,14 @@ func (o MyHandlerService) Handle(arg interface{}) {
 */
 type HandlerService struct {
 	*FuncService
+	*Pool
 	handlers map[interface{}]func(interface{})
 }
 
-func NewHandlerService(bufferCapacity uint) (v HandlerService) {
+func NewHandlerService(bufferSize uint, poolMin uint) (v *HandlerService) {
+	v = new(HandlerService)
 	v.handlers = make(map[interface{}]func(interface{}))
-	v.FuncService = NewFuncService(bufferCapacity, func(anyKeyArg interface{}) {
+	v.Pool = NewPool(poolMin, func(anyKeyArg interface{}) {
 		keyArg := anyKeyArg.([]interface{})
 		key := keyArg[0]
 		arg := keyArg[1]
@@ -70,11 +72,12 @@ func NewHandlerService(bufferCapacity uint) (v HandlerService) {
 		fun := v.handlers[key]
 		fun(arg)
 	})
+	v.FuncService = NewFuncService(bufferSize, v.Pool.Call)
 	return
 }
 
 // key: key's type shoudn't be function, slice, map or struct contains function, slice or map field
-func (o HandlerService) Set(key interface{}, fun func(arg interface{})) {
+func (o *HandlerService) Set(key interface{}, fun func(arg interface{})) {
 	// assert invalid key type
 	if ValidateMapKey(reflect.TypeOf(key)) == false {
 		golib.Panic("%t isn't a valid map key type!\n", key)
@@ -88,7 +91,7 @@ func (o HandlerService) Set(key interface{}, fun func(arg interface{})) {
 		o.handlers[key] = fun
 	}
 }
-func (o HandlerService) Handle(key interface{}, arg interface{}) {
+func (o *HandlerService) Handle(key interface{}, arg interface{}) {
 	if ValidateMapKey(reflect.TypeOf(key)) == false {
 		golib.Warn("%t isn't a valid map key type!\n", key)
 		return
@@ -100,6 +103,6 @@ func (o HandlerService) Handle(key interface{}, arg interface{}) {
 	o.HandleWithoutCheck(key, arg)
 }
 
-func (o HandlerService) HandleWithoutCheck(key interface{}, arg interface{}) {
+func (o *HandlerService) HandleWithoutCheck(key interface{}, arg interface{}) {
 	o.FuncService.Call([]interface{}{key, arg})
 }

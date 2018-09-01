@@ -28,28 +28,20 @@ package svc
 
 import (
 	"github.com/moxitrel/golib"
-	"sync"
 )
 
 type FuncService struct {
 	*LoopService
-	fun      func(interface{})
-	args     chan interface{}
-	stopOnce *sync.Once
+	fun  func(interface{})
+	args chan interface{}
 }
 
 type _StopSignal struct{}
 
-func NewFuncService(bufferCapacity uint, fun func(arg interface{})) (v *FuncService) {
-	if fun == nil {
-		golib.Warn("<fun> shouldn't be nil!\n")
-		fun = func(_ interface{}) {}
-	}
-
+func NewFuncService(bufferSize uint, fun func(interface{})) (v *FuncService) {
 	v = &FuncService{
-		fun:      fun,
-		args:     make(chan interface{}, bufferCapacity),
-		stopOnce: new(sync.Once),
+		fun:  fun,
+		args: make(chan interface{}, bufferSize),
 	}
 	v.LoopService = NewLoopService(func() {
 		for {
@@ -62,18 +54,37 @@ func NewFuncService(bufferCapacity uint, fun func(arg interface{})) (v *FuncServ
 			}
 		}
 	})
+	if fun == nil {
+		golib.Warn("^fun shouldn't be nil!\n")
+		v.Stop()
+	}
 	return
 }
 
 func (o *FuncService) Stop() {
-	o.stopOnce.Do(func() {
+	if o.state == RUNNING {
 		o.LoopService.Stop()
 		o.args <- _StopSignal{}
-	})
+	}
 }
 
 func (o *FuncService) Call(arg interface{}) {
 	if o.state == RUNNING {
 		o.args <- arg
+	}
+}
+
+// XXX: may be unsafe, element order in channel my be change while Call()
+func (o *FuncService) SetSize(n uint) {
+	oldArgs := o.args
+	o.args = make(chan interface{}, n)
+	oldArgs <- _StopSignal{}
+	for {
+		select {
+		case arg := <-oldArgs:
+			o.args <- arg
+		default:
+			break
+		}
 	}
 }
