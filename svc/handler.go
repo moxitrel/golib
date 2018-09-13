@@ -13,16 +13,20 @@ import (
 	"sync"
 )
 
+// Cache the check result
 var validateMapKeyCache = new(sync.Map)
 
+// Check whether <keyType> is a valid key type of map
 func ValidateMapKey(keyType reflect.Type) (v bool) {
 	v = true
 
 	if keyType != nil {
 		switch keyType.Kind() {
 		case reflect.Invalid, reflect.Func, reflect.Slice, reflect.Map:
+			// shoudn't be a function, slice or map
 			v = false
-		case reflect.Struct:
+		case reflect.Struct:	// shoudn't be a struct contains function, slice or map field
+			// fetch result from cache if exists
 			if anyV, ok := validateMapKeyCache.Load(keyType); ok {
 				v = anyV.(bool)
 			} else {
@@ -40,7 +44,7 @@ func ValidateMapKey(keyType reflect.Type) (v bool) {
 	return
 }
 
-/*
+/* Usage:
 
 // 1. define a new type derive HandlerService
 //
@@ -48,13 +52,14 @@ type MyHandlerService struct {
 	HandlerService
 }
 
-// 2. override Handle() with pre-defined key() function
+// 2. define method Call() with arg has key() attribute
 //
-func (o MyHandlerService) Handle(arg interface{}) {
+func (o MyHandlerService) Call(arg T) {
 	o.HandlerService.Handle(arg.Key(), arg)
 }
 
 */
+// Process arg by handlers[arg.key()] in goroutine pool
 type HandlerService struct {
 	*FuncService
 	*Pool
@@ -77,6 +82,7 @@ func NewHandlerService(bufferSize uint, poolMin uint) (v *HandlerService) {
 }
 
 // key: key's type shoudn't be function, slice, map or struct contains function, slice or map field
+// fun: nil, delete the handler according to key
 func (o *HandlerService) Set(key interface{}, fun func(arg interface{})) {
 	// assert invalid key type
 	if ValidateMapKey(reflect.TypeOf(key)) == false {
