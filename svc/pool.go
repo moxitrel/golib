@@ -5,14 +5,14 @@ import (
 	"time"
 )
 
-// Start [min, max] goroutines of fun to process arg
+// Start [min, max] goroutines of <Pool.fun> to process <Pool.arg>
 //
-// [Example]
+// * Example
 // f := func(x interface{}) { time.Sleep(time.Second) }
 // p := NewPool(2, f)	// start 2 goroutines of f
-// p.Call("1")			// run f("1") in background
-// p.Call("2")			// run f("2") in background
-// p.Call("3")			// run f("3") in background after wait POOL_DELAY ns
+// p.Call("1")			// run f("1") in background and return immediately
+// p.Call("2")			// run f("2") in background and return immediately
+// p.Call("3")			// run f("3") in background after block <Pool.delay> ns
 //
 type Pool struct {
 	fun func(interface{})
@@ -24,9 +24,9 @@ type Pool struct {
 	cur int32
 	// the max number of coroutines can be created
 	max uint16
-	// create a new coroutine if arg is blocked for <delay> ns
+	// create a new coroutine if <arg> is blocked for <delay> ns
 	delay time.Duration
-	// destroy the coroutine that is idle for <timeout> ns
+	// destroy the coroutine idle for <timeout> ns
 	timeout time.Duration
 }
 
@@ -37,7 +37,7 @@ func NewPool(min uint, fun func(interface{})) (v *Pool) {
 		min:     uint16(min),
 		cur:     0,
 		max:     POOL_MAX,
-		delay:   POOL_DELAY, // a proper value should at least 0.1s
+		delay:   POOL_DELAY, // a proper value should be at least 0.1s
 		timeout: POOL_TIMEOUT,
 	}
 	for v.cur < int32(v.min) {
@@ -72,6 +72,7 @@ func (o *Pool) Call(arg interface{}) {
 				// NOTE: use delay to ensure the new process is already started when try again
 				o.Call(arg)
 			} else {
+				// wait if no more goroutine can be created
 				o.arg <- arg
 			}
 		}
