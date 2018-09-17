@@ -25,7 +25,7 @@ func ValidateMapKey(keyType reflect.Type) (v bool) {
 		case reflect.Invalid, reflect.Func, reflect.Slice, reflect.Map:
 			// shoudn't be a function, slice or map
 			v = false
-		case reflect.Struct:	// shoudn't be a struct contains function, slice or map field
+		case reflect.Struct: // shoudn't be a struct contains function, slice or map field
 			// fetch result from cache if exists
 			if anyV, ok := validateMapKeyCache.Load(keyType); ok {
 				v = anyV.(bool)
@@ -69,7 +69,7 @@ type HandlerService struct {
 func NewHandlerService(bufferSize uint, poolMin uint) (v *HandlerService) {
 	v = new(HandlerService)
 	v.handlers = make(map[interface{}]func(interface{}))
-	v.Pool = NewPool(poolMin, func(anyKeyArg interface{}) {
+	v.Pool = NewPool(func(anyKeyArg interface{}) {
 		keyArg := anyKeyArg.([]interface{})
 		key := keyArg[0]
 		arg := keyArg[1]
@@ -77,6 +77,7 @@ func NewHandlerService(bufferSize uint, poolMin uint) (v *HandlerService) {
 		fun := v.handlers[key]
 		fun(arg)
 	})
+	v.Pool.SetCount(poolMin, uint(v.Pool.max))
 	v.FuncService = NewFuncService(bufferSize, v.Pool.Call)
 	return
 }

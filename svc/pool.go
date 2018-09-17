@@ -1,6 +1,7 @@
 package svc
 
 import (
+	"math"
 	"sync/atomic"
 	"time"
 )
@@ -9,11 +10,19 @@ import (
 //
 // * Example
 // f := func(x interface{}) { time.Sleep(time.Second) }
-// p := NewPool(2, f)	// start 2 goroutines of f
+// p := NewPool(f)	    // start 2 (Pool.min) goroutines of f
 // p.Call("1")			// run f("1") in background and return immediately
 // p.Call("2")			// run f("2") in background and return immediately
 // p.Call("3")			// run f("3") in background after block <Pool.delay> ns
 //
+
+const (
+	POOL_MIN     = 2
+	POOL_MAX     = math.MaxUint16
+	POOL_DELAY   = 200 * time.Millisecond
+	POOL_TIMEOUT = time.Minute
+)
+
 type Pool struct {
 	fun func(interface{})
 	arg chan interface{}
@@ -30,11 +39,11 @@ type Pool struct {
 	timeout time.Duration
 }
 
-func NewPool(min uint, fun func(interface{})) (v *Pool) {
+func NewPool(fun func(interface{})) (v *Pool) {
 	v = &Pool{
 		fun:     fun,
 		arg:     make(chan interface{}),
-		min:     uint16(min),
+		min:     POOL_MIN,
 		cur:     0,
 		max:     POOL_MAX,
 		delay:   POOL_DELAY, // a proper value should be at least 0.1s
@@ -51,11 +60,10 @@ func (o *Pool) SetTime(delay time.Duration, timeout time.Duration) {
 	o.timeout = timeout
 }
 
-func (o *Pool) SetCount(min uint16, max uint16) {
-	o.min = min
-	o.max = max
-	for o.cur < int32(o.min) {
-		o.newProcess()
+func (o *Pool) SetCount(min uint, max uint) {
+	o.min = uint16(min)
+	o.max = uint16(max)
+	for o.newProcess() { // create <min> coroutines
 	}
 }
 
@@ -69,10 +77,10 @@ func (o *Pool) Call(arg interface{}) {
 		case <-time.After(o.delay):
 			// If <delay> is too small, select may choose this case even <o.arg> isn't blocked.
 			if o.newProcess() {
-				// NOTE: use delay to ensure the new process is already started when try again
+				// NOTE: expect the new process has started by delay when try again
 				o.Call(arg)
 			} else {
-				// wait if no more goroutine can be created
+				// wait if no more coroutine can be created
 				o.arg <- arg
 			}
 		}

@@ -32,16 +32,17 @@ func Test_Select(t *testing.T) {
 func TestPool_NumGoroutine(t *testing.T) {
 	ngoBegin := runtime.NumGoroutine()
 
-	min := uint16(2)
+	min := 2
 	delay := time.Millisecond
 	timeout := time.Second
-	f := NewPool(0, func(_ interface{}) {
+	f := NewPool(func(_ interface{}) {
 		time.Sleep(time.Second)
 	})
 	f.SetTime(delay, timeout)
-	f.SetCount(min, POOL_MAX)
+	f.SetCount(uint(min), POOL_MAX)
+	time.Sleep(timeout + 10*time.Millisecond)
 	ngoNewPool := runtime.NumGoroutine()
-	if ngoNewPool != ngoBegin+int(min) {
+	if ngoNewPool != ngoBegin+min {
 		t.Errorf("Goroutine.Count: %v, want %v", ngoNewPool, ngoBegin+2)
 	}
 
@@ -69,12 +70,13 @@ func TestPool_Example(t *testing.T) {
 	delay := 10 * time.Millisecond
 	timeout := (delay + 5*time.Millisecond) * time.Duration(cap(ts))
 
-	f := NewPool(0, func(x interface{}) {
+	f := NewPool(func(x interface{}) {
 		ts = append(ts, time.Now())
 		time.Sleep(timeout)
 	})
 	f.SetTime(delay, timeout)
 	f.SetCount(1, POOL_MAX)
+	time.Sleep(timeout)
 
 	for i := 0; i < cap(ts); i++ {
 		f.Call(nil)
@@ -86,7 +88,7 @@ func TestPool_Example(t *testing.T) {
 			t.Errorf("%v: dt = %v, want [%v, %v]", i, dt, delay, delay+10*time.Millisecond)
 		}
 	}
-	f.SetCount(0, f.max)
+	f.SetCount(0, uint(f.max))
 	for f.cur > 0 {
 		time.Sleep(f.timeout / 2)
 	}
