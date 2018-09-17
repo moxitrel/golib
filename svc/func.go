@@ -36,12 +36,19 @@ type Func struct {
 	args chan interface{}
 }
 
+const MAX_BUFFER_SIZE = 1 << 24
+
 type _StopSignal struct{}
 
 func NewFunc(bufferSize uint, fun func(interface{})) (v *Func) {
+	if bufferSize > MAX_BUFFER_SIZE {
+		golib.Warn("bufferSize:%v is too large, reset to %v", bufferSize, MAX_BUFFER_SIZE)
+		bufferSize = MAX_BUFFER_SIZE
+	}
 	if fun == nil {
 		golib.Panic("^fun shouldn't be nil!\n")
 	}
+
 	v = &Func{
 		fun:  fun,
 		args: make(chan interface{}, bufferSize),

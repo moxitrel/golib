@@ -8,7 +8,7 @@ import (
 )
 
 func TestLoop_Example(t *testing.T) {
-	var i uint64 = 0
+	var n uint64 = 0
 	var loopStartSignal = struct {
 		sync.Once
 		signal chan struct{}
@@ -21,8 +21,8 @@ func TestLoop_Example(t *testing.T) {
 			loopStartSignal.signal <- struct{}{}
 		})
 
-		if i < math.MaxUint64 {
-			i++
+		if n < math.MaxUint64 {
+			n++
 		}
 	})
 	defer func() {
@@ -33,9 +33,9 @@ func TestLoop_Example(t *testing.T) {
 	<-loopStartSignal.signal
 	time.Sleep(time.Microsecond)
 
-	if i == 0 {
-		t.Errorf("i == %v, want !0", i)
+	if n == 0 {
+		t.Errorf("n == %v, want !0", n)
 	} else {
-		t.Logf("i == %v", i)
+		t.Logf("process count: %v", n)
 	}
 }
