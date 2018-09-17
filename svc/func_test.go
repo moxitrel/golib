@@ -22,19 +22,18 @@ func Test_StopSignal(t *testing.T) {
 }
 
 func TestFunc_NewWithNil(t *testing.T) {
-	// no panic
-	o := NewFuncService(math.MaxUint8, nil)
-	defer o.Stop()
+	defer func() {
+		err := recover()
+		if err == nil {
+			t.Errorf("NewFunc(_, nil) should be panic.")
+		}
+	}()
 
-	// no panic
-	// no effect
-	o.Call(1)
-	o.Call(nil)
-	o.Call(struct{}{})
+	NewFunc(math.MaxUint8, nil)
 }
 
 func TestFunc_New(t *testing.T) {
-	o := NewFuncService(math.MaxUint8, func(x interface{}) {
+	o := NewFunc(math.MaxUint8, func(x interface{}) {
 		t.Logf("%v", x)
 	})
 	defer o.Stop()
@@ -46,7 +45,7 @@ func TestFunc_New(t *testing.T) {
 
 func TestFunc_CallAfterStop(t *testing.T) {
 	x := 0
-	o := NewFuncService(math.MaxUint8, func(arg interface{}) {
+	o := NewFunc(math.MaxUint8, func(arg interface{}) {
 		x = arg.(int)
 	})
 	o.Stop()
@@ -60,10 +59,10 @@ func TestFunc_CallAfterStop(t *testing.T) {
 }
 
 func TestFunc_StopCallRace(t *testing.T) {
-	o := NewFuncService(math.MaxUint16, func(interface{}) {})
+	o := NewFunc(math.MaxUint16, func(interface{}) {})
 	time.Sleep(time.Millisecond)
 
-	oCall := NewLoopService(func() {
+	oCall := NewLoop(func() {
 		o.Call(0)
 	})
 	time.Sleep(10 * time.Millisecond)

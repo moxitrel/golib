@@ -6,13 +6,13 @@ import (
 	"time"
 )
 
-func TestHandlerService_Example(t *testing.T) {
+func TestDispatch_Example(t *testing.T) {
 	key := func(arg interface{}) reflect.Type {
 		return reflect.TypeOf(arg)
 	}
 	v := ""
 
-	o := NewHandlerService(8, 0)
+	o := NewDispatch(8, 0)
 	defer func() {
 		o.Stop()
 		o.Join()

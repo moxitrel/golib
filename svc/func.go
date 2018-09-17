@@ -1,18 +1,18 @@
 /*
 
-NewFuncService (Any -> ())	: "loop f(arg)"
+NewFunc (Any -> ())	: "loop f(arg)"
 	Apply Any : "sched f(arg)"
 
 *** e.g.
 
-// 1. define a new type derive FuncService
+// 1. define a new type derive Func
 type T struct {
-	*FuncService
+	*Func
 }
 
 // 2. define construction
 func NewF() T {
-	return &F{NewFuncService(func(argAny interface{}) {
+	return &F{NewFunc(func(argAny interface{}) {
 		arg := argAny.(ArgT)	// recover the type
 		...
 	})}
@@ -20,7 +20,7 @@ func NewF() T {
 
 // 3. override Apply() with desired type
 func (o *T) Apply(x ArgT) {
-	o.FuncService.Apply(x)
+	o.Func.Apply(x)
 }
 
 */
@@ -30,52 +30,53 @@ import (
 	"github.com/moxitrel/golib"
 )
 
-type FuncService struct {
-	*LoopService
+type Func struct {
+	*Loop
 	fun  func(interface{})
 	args chan interface{}
 }
 
 type _StopSignal struct{}
 
-func NewFuncService(bufferSize uint, fun func(interface{})) (v *FuncService) {
-	v = &FuncService{
+func NewFunc(bufferSize uint, fun func(interface{})) (v *Func) {
+	if fun == nil {
+		golib.Panic("^fun shouldn't be nil!\n")
+	}
+	v = &Func{
 		fun:  fun,
 		args: make(chan interface{}, bufferSize),
 	}
-	v.LoopService = NewLoopService(func() {
+	v.Loop = NewLoop(func() {
+		arg := <-v.args
 		for {
-			arg := <-v.args
 			if arg != (_StopSignal{}) {
 				v.fun(arg)
 			}
-			if len(v.args) == 0 {
-				break
+			select {
+			case arg = <-v.args:
+			default:
+				return
 			}
 		}
 	})
-	if fun == nil {
-		golib.Warn("^fun shouldn't be nil!\n")
-		v.Stop()
-	}
 	return
 }
 
-func (o *FuncService) Stop() {
+func (o *Func) Stop() {
 	if o.state == RUNNING {
-		o.LoopService.Stop()
+		o.Loop.Stop()
 		o.args <- _StopSignal{}
 	}
 }
 
-func (o *FuncService) Call(arg interface{}) {
+func (o *Func) Call(arg interface{}) {
 	if o.state == RUNNING {
 		o.args <- arg
 	}
 }
 
-// XXX: may be unsafe, element order in channel my be change while Call()
-func (o *FuncService) SetSize(n uint) {
+// XXX: element order in channel can be changed while Call()
+func (o *Func) SetSize(n uint) {
 	oldArgs := o.args
 	o.args = make(chan interface{}, n)
 	oldArgs <- _StopSignal{}
