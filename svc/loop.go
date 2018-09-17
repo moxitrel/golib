@@ -1,5 +1,5 @@
 /*
-NewLoopService f	: "LoopService f() in background."
+NewLoop f	: "Loop f() in background."
 		Stop: "Signal service to stop."
 		Join: "Wait service to stop."
 */
@@ -15,21 +15,20 @@ const (
 	RUNNING
 )
 
-type LoopService struct {
+type Loop struct {
 	thunk func()
 	state int
 	wg    *sync.WaitGroup
 }
 
-func NewLoopService(thunk func()) (v *LoopService) {
-	v = &LoopService{
+func NewLoop(thunk func()) (v *Loop) {
+	if thunk == nil {
+		golib.Panic("^thunk shouldn't be nil!\n")
+	}
+	v = &Loop{
 		thunk: thunk,
 		state: RUNNING,
 		wg:    new(sync.WaitGroup),
-	}
-	if v.thunk == nil {
-		golib.Warn("^thunk shouldn't be nil!\n")
-		return
 	}
 	go func() {
 		v.wg.Add(1)
@@ -41,10 +40,10 @@ func NewLoopService(thunk func()) (v *LoopService) {
 	return
 }
 
-func (o *LoopService) Stop() {
+func (o *Loop) Stop() {
 	o.state = STOPPED
 }
 
-func (o *LoopService) Join() {
+func (o *Loop) Join() {
 	o.wg.Wait()
 }

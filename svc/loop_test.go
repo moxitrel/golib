@@ -5,14 +5,9 @@ import (
 	"time"
 )
 
-func TestLoop_Nil(t *testing.T) {
-	o := NewLoopService(nil) // not panic
-	o.Stop()
-}
-
 func TestLoop_Example(t *testing.T) {
 	i := 0
-	o := NewLoopService(func() {
+	o := NewLoop(func() {
 		i++
 	})
 	defer func() {

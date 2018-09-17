@@ -31,5 +31,5 @@ func Panic(format string, args ...interface{}) {
 }
 
 func Warn(format string, args ...interface{}) {
-	fmt.Printf(Caller(1)+": "+format, args...)
+	fmt.Printf("WARN "+Caller(1)+": "+format, args...)
 }

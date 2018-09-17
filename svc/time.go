@@ -18,7 +18,7 @@ import (
 type Task struct{ do func() }
 
 type TimeService struct {
-	*LoopService
+	*Loop
 	accuracy time.Duration
 	tasks    sets.Set
 }
@@ -28,7 +28,7 @@ func NewTimeService(accuracy time.Duration) (v *TimeService) {
 		accuracy: accuracy,
 		tasks:    hashset.New(),
 	}
-	v.LoopService = NewLoopService(func() {
+	v.Loop = NewLoop(func() {
 		now := time.Now()
 		time.Sleep(now.Truncate(v.accuracy).Add(v.accuracy).Sub(now) % v.accuracy)
 

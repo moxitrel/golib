@@ -1,6 +1,6 @@
 /*
 
-NewHandlerService bufferSize:
+NewDispatch bufferSize:
 	Set   	 x cb: "add handler for x.Key"
 	Handle   x   : "sched cb(x)"
 
@@ -46,28 +46,28 @@ func ValidateMapKey(keyType reflect.Type) (v bool) {
 
 /* Usage:
 
-// 1. define a new type derive HandlerService
+// 1. define a new type derive Dispatch
 //
 type MyHandlerService struct {
-	HandlerService
+	Dispatch
 }
 
 // 2. define method Call() with arg has key() attribute
 //
 func (o MyHandlerService) Call(arg T) {
-	o.HandlerService.Handle(arg.Key(), arg)
+	o.Dispatch.Handle(arg.Key(), arg)
 }
 
 */
 // Process arg by handlers[arg.key()] in goroutine pool
-type HandlerService struct {
-	*FuncService
+type Dispatch struct {
+	*Func
 	*Pool
 	handlers map[interface{}]func(interface{})
 }
 
-func NewHandlerService(bufferSize uint, poolMin uint) (v *HandlerService) {
-	v = new(HandlerService)
+func NewDispatch(bufferSize uint, poolMin uint) (v *Dispatch) {
+	v = new(Dispatch)
 	v.handlers = make(map[interface{}]func(interface{}))
 	v.Pool = NewPool(func(anyKeyArg interface{}) {
 		keyArg := anyKeyArg.([]interface{})
@@ -78,17 +78,16 @@ func NewHandlerService(bufferSize uint, poolMin uint) (v *HandlerService) {
 		fun(arg)
 	})
 	v.Pool.SetCount(poolMin, uint(v.Pool.max))
-	v.FuncService = NewFuncService(bufferSize, v.Pool.Call)
+	v.Func = NewFunc(bufferSize, v.Pool.Call)
 	return
 }
 
 // key: key's type shoudn't be function, slice, map or struct contains function, slice or map field
 // fun: nil, delete the handler according to key
-func (o *HandlerService) Set(key interface{}, fun func(arg interface{})) {
+func (o *Dispatch) Set(key interface{}, fun func(arg interface{})) {
 	// assert invalid key type
 	if ValidateMapKey(reflect.TypeOf(key)) == false {
 		golib.Panic("%t isn't a valid map key type!\n", key)
-		return
 	}
 
 	if fun == nil {
@@ -98,7 +97,7 @@ func (o *HandlerService) Set(key interface{}, fun func(arg interface{})) {
 		o.handlers[key] = fun
 	}
 }
-func (o *HandlerService) Handle(key interface{}, arg interface{}) {
+func (o *Dispatch) Handle(key interface{}, arg interface{}) {
 	if ValidateMapKey(reflect.TypeOf(key)) == false {
 		golib.Warn("%t isn't a valid map key type!\n", key)
 		return
@@ -110,6 +109,6 @@ func (o *HandlerService) Handle(key interface{}, arg interface{}) {
 	o.HandleWithoutCheck(key, arg)
 }
 
-func (o *HandlerService) HandleWithoutCheck(key interface{}, arg interface{}) {
-	o.FuncService.Call([]interface{}{key, arg})
+func (o *Dispatch) HandleWithoutCheck(key interface{}, arg interface{}) {
+	o.Func.Call([]interface{}{key, arg})
 }

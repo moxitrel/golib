@@ -1,6 +1,7 @@
 package svc
 
 import (
+	"github.com/moxitrel/golib"
 	"math"
 	"sync/atomic"
 	"time"
@@ -10,7 +11,7 @@ import (
 //
 // * Example
 // f := func(x interface{}) { time.Sleep(time.Second) }
-// p := NewPool(f)	    // start 2 (Pool.min) goroutines of f
+// p := NewPool(f)	    // start 2 goroutines of f
 // p.Call("1")			// run f("1") in background and return immediately
 // p.Call("2")			// run f("2") in background and return immediately
 // p.Call("3")			// run f("3") in background after block <Pool.delay> ns
@@ -40,6 +41,9 @@ type Pool struct {
 }
 
 func NewPool(fun func(interface{})) (v *Pool) {
+	if fun == nil {
+		golib.Panic("^fun shouldn't be nil!\n")
+	}
 	v = &Pool{
 		fun:     fun,
 		arg:     make(chan interface{}),
@@ -55,16 +59,21 @@ func NewPool(fun func(interface{})) (v *Pool) {
 	return
 }
 
+func (o *Pool) SetCount(min uint, max uint) {
+	if min > max {
+		golib.Warn("min:%v > max:%v!\n", min, max)
+		min = max
+	}
+	o.min = uint16(min)
+	o.max = uint16(max)
+	for o.cur < int32(o.min) {
+		o.newProcess()
+	}
+}
+
 func (o *Pool) SetTime(delay time.Duration, timeout time.Duration) {
 	o.delay = delay
 	o.timeout = timeout
-}
-
-func (o *Pool) SetCount(min uint, max uint) {
-	o.min = uint16(min)
-	o.max = uint16(max)
-	for o.newProcess() { // create <min> coroutines
-	}
 }
 
 func (o *Pool) Call(arg interface{}) {
@@ -95,8 +104,8 @@ func (o *Pool) newProcess() bool {
 		return false
 	}
 
-	var loop *LoopService
-	loop = NewLoopService(func() {
+	var loop *Loop
+	loop = NewLoop(func() {
 		select {
 		case arg := <-o.arg:
 			o.fun(arg)

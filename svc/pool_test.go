@@ -39,11 +39,11 @@ func TestPool_NumGoroutine(t *testing.T) {
 		time.Sleep(time.Second)
 	})
 	f.SetTime(delay, timeout)
-	f.SetCount(uint(min), POOL_MAX)
+	f.SetCount(uint(min), uint(f.max))
 	time.Sleep(timeout + 10*time.Millisecond)
 	ngoNewPool := runtime.NumGoroutine()
 	if ngoNewPool != ngoBegin+min {
-		t.Errorf("Goroutine.Count: %v, want %v", ngoNewPool, ngoBegin+2)
+		t.Fatalf("Goroutine.Count: %v, want %v", ngoNewPool, ngoBegin+min)
 	}
 
 	// f has 90 goroutines, 2 old, 88 new
@@ -53,7 +53,7 @@ func TestPool_NumGoroutine(t *testing.T) {
 	}
 	ngoCall := runtime.NumGoroutine()
 	if ngoCall != ngoBegin+nCall {
-		t.Errorf("Goroutine.Count: %v, want %v", ngoCall, ngoBegin+nCall)
+		t.Fatalf("Goroutine.Count: %v, want %v", ngoCall, ngoBegin+nCall)
 	}
 
 	for f.cur > int32(f.min) {
@@ -61,7 +61,7 @@ func TestPool_NumGoroutine(t *testing.T) {
 	}
 	ngoTimeout := runtime.NumGoroutine()
 	if ngoTimeout != ngoNewPool {
-		t.Errorf("Goroutine.Count: %v, want %v", ngoTimeout, ngoNewPool)
+		t.Fatalf("Goroutine.Count: %v, want %v", ngoTimeout, ngoNewPool)
 	}
 }
 
