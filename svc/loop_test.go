@@ -1,24 +1,41 @@
 package svc
 
 import (
+	"math"
+	"sync"
 	"testing"
 	"time"
 )
 
 func TestLoop_Example(t *testing.T) {
-	i := 0
+	var i uint64 = 0
+	var loopStartSignal = struct {
+		sync.Once
+		signal chan struct{}
+	}{
+		signal: make(chan struct{}),
+	}
+
 	o := NewLoop(func() {
-		i++
+		loopStartSignal.Do(func() {
+			loopStartSignal.signal <- struct{}{}
+		})
+
+		if i < math.MaxUint64 {
+			i++
+		}
 	})
 	defer func() {
 		o.Stop()
 		o.Join()
 	}()
 
-	time.Sleep(time.Millisecond)
+	<-loopStartSignal.signal
+	time.Sleep(time.Microsecond)
+
 	if i == 0 {
-		t.Errorf("i == 0, want !0")
+		t.Errorf("i == %v, want !0", i)
 	} else {
-		t.Logf("i: %v", i)
+		t.Logf("i == %v", i)
 	}
 }
