@@ -30,4 +30,5 @@ cmd=" go test "                                     # 默认测试 pkg in curren
 #cmd=" $cmd -test.benchmem "                         # print memory allocation state
 cmd=" $cmd ${TEST_REGEX:+  -run   $TEST_REGEX} "    # run test      matching $TEST_REGEX
 cmd=" $cmd ${BENCH_REGEX:+ -bench $BENCH_REGEX} "   # run benchmark matching $BENCH_REGEX
+cmd=" $cmd -cover "                                 # coverage analysis, line number may be changed
 $cmd $PKG
