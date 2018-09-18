@@ -1,10 +1,10 @@
 /*
-func NewTimeService(accuracy time.Duration) *TimeService
-func (*TimeService) Add   	(func(*Task))					*Task
-func (*TimeService) Delete	(*Task)
+func NewTime(accuracy time.Duration) *Time
+func (*Time) Add   	(func())					*Task
+func (*Time) Delete	(*Task)
 
-func (*TimeService) At    	(time.TimeService, func()) 		*Task
-func (*TimeService) Every   (time.Duration	 , func()) 		*Task
+func (*Time) At    	(time.Time,     func()) 	*Task
+func (*Time) Every 	(time.Duration, func()) 	*Task
 */
 package svc
 
@@ -17,14 +17,14 @@ import (
 
 type Task struct{ do func() }
 
-type TimeService struct {
+type Time struct {
 	*Loop
 	accuracy time.Duration
 	tasks    sets.Set
 }
 
-func NewTimeService(accuracy time.Duration) (v *TimeService) {
-	v = &TimeService{
+func NewTime(accuracy time.Duration) (v *Time) {
+	v = &Time{
 		accuracy: accuracy,
 		tasks:    hashset.New(),
 	}
@@ -40,7 +40,7 @@ func NewTimeService(accuracy time.Duration) (v *TimeService) {
 	return
 }
 
-func (o *TimeService) Add(do func()) (v *Task) {
+func (o *Time) Add(do func()) (v *Task) {
 	v = &Task{
 		do: do,
 	}
@@ -52,13 +52,13 @@ func (o *TimeService) Add(do func()) (v *Task) {
 	return
 }
 
-func (o *TimeService) Delete(task *Task) {
+func (o *Time) Delete(task *Task) {
 	o.tasks.Remove(task)
 }
 
 // Run thunk() once at <future>.
 // If future is before now, run at next check
-func (o *TimeService) At(future time.Time, thunk func()) (v *Task) {
+func (o *Time) At(future time.Time, thunk func()) (v *Task) {
 	v = o.Add(func() {
 		if !time.Now().Before(future) {
 			thunk()
@@ -69,7 +69,7 @@ func (o *TimeService) At(future time.Time, thunk func()) (v *Task) {
 }
 
 // Run thunk() every <interval> ns
-func (o *TimeService) Every(interval time.Duration, thunk func()) (v *Task) {
+func (o *Time) Every(interval time.Duration, thunk func()) (v *Task) {
 	tnext := time.Now().Truncate(interval).Add(interval)
 	v = o.Add(func() {
 		now := time.Now()
