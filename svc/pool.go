@@ -68,6 +68,15 @@ func NewPool(fun func(interface{})) (v *Pool) {
 	return
 }
 
+// Change when to create or kill a goroutine.
+// A new goroutine will be created after the argument of Call() delayed by ^delay ns.
+// A goroutine will be killed after idle for ^timeout ns
+func (o *Pool) SetTime(delay time.Duration, timeout time.Duration) *Pool {
+	o.delay = delay
+	o.timeout = timeout
+	return o
+}
+
 // Change how many goroutines the Pool can create, min <= n <= max.
 func (o *Pool) SetCount(min uint, max uint) *Pool {
 	if min > max {
@@ -80,15 +89,6 @@ func (o *Pool) SetCount(min uint, max uint) *Pool {
 	for o.cur < int32(o.min) {
 		o.newProcess()
 	}
-	return o
-}
-
-// Change when to create or kill a goroutine.
-// A new goroutine will be created after the argument of Call() delayed by ^delay ns.
-// A goroutine will be killed after idle for ^timeout ns
-func (o *Pool) SetTime(delay time.Duration, timeout time.Duration) *Pool {
-	o.delay = delay
-	o.timeout = timeout
 	return o
 }
 
