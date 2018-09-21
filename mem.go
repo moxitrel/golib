@@ -16,7 +16,7 @@ func (o *_BytesPool) Put(x []byte) {
 var BytesPool = _BytesPool{
 	Pool: sync.Pool{
 		New: func() interface{} {
-			return make([]byte, 1024)
+			return make([]byte, 0)
 		},
 	},
 }
