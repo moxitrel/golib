@@ -1,3 +1,12 @@
+/*
+
+func         NewPool (func (interface{})                        ) *Pool
+func (*Pool) SetCount(min   uint         , max     uint         ) *Pool
+func (*Pool) SetTime (delay time.Duration, timeout time.Duration) *Pool
+
+func (*Pool) Call    (interface{})
+
+*/
 package svc
 
 import (
@@ -59,21 +68,28 @@ func NewPool(fun func(interface{})) (v *Pool) {
 	return
 }
 
-func (o *Pool) SetCount(min uint, max uint) {
+// Change when to create or kill a goroutine.
+// A new goroutine will be created after the argument of Call() delayed by ^delay ns.
+// A goroutine will be killed after idle for ^timeout ns
+func (o *Pool) SetTime(delay time.Duration, timeout time.Duration) *Pool {
+	o.delay = delay
+	o.timeout = timeout
+	return o
+}
+
+// Change how many goroutines the Pool can create, min <= n <= max.
+func (o *Pool) SetCount(min uint, max uint) *Pool {
 	if min > max {
 		golib.Warn("min:%v > max:%v!\n", min, max)
 		min = max
 	}
+
 	o.min = uint16(min)
 	o.max = uint16(max)
 	for o.cur < int32(o.min) {
 		o.newProcess()
 	}
-}
-
-func (o *Pool) SetTime(delay time.Duration, timeout time.Duration) {
-	o.delay = delay
-	o.timeout = timeout
+	return o
 }
 
 func (o *Pool) Call(arg interface{}) {

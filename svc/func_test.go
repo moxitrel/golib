@@ -2,6 +2,8 @@ package svc
 
 import (
 	"math"
+	"math/rand"
+	"sync"
 	"testing"
 	"time"
 )
@@ -21,56 +23,74 @@ func Test_StopSignal(t *testing.T) {
 	}
 }
 
-func TestFunc_NewWithNil(t *testing.T) {
-	defer func() {
-		err := recover()
-		if err == nil {
-			t.Errorf("NewFunc(_, nil) should be panic.")
-		}
-	}()
-
-	NewFunc(math.MaxUint8, nil)
-}
-
 func TestFunc_New(t *testing.T) {
-	o := NewFunc(math.MaxUint8, func(x interface{}) {
-		t.Logf("%v", x)
+	var x = 0
+	signalBegin := make(chan struct{})
+	signalEnd := make(chan struct{})
+	o := NewFunc(math.MaxUint8, func(arg interface{}) {
+		signalBegin <- struct{}{}
+		x = arg.(int)
+		signalEnd <- struct{}{}
 	})
 	defer o.Stop()
+
 	o.Call(1)
 	o.Call(2)
 	o.Call(3)
-	time.Sleep(time.Millisecond)
+
+	for _, v := range []int{1, 2, 3} {
+		<-signalBegin
+		<-signalEnd
+		if x != v {
+			t.Fatalf("x == %v, want %v", x, v)
+		}
+	}
 }
 
 func TestFunc_CallAfterStop(t *testing.T) {
-	x := 0
+	var x = 0
 	o := NewFunc(math.MaxUint8, func(arg interface{}) {
 		x = arg.(int)
 	})
 	o.Stop()
-	time.Sleep(time.Millisecond)
+	o.Join()
 
 	// no effect after stop
 	o.Call(1)
 	if x != 0 {
-		t.Errorf("x = %v, want %v", x, 0)
+		t.Errorf("x = %v, want 0", x)
 	}
 }
 
 func TestFunc_StopCallRace(t *testing.T) {
-	o := NewFunc(math.MaxUint16, func(interface{}) {})
+	var startSignal = struct {
+		sync.Once
+		signal chan struct{}
+	}{
+		signal: make(chan struct{}),
+	}
+
+	n := uint64(0)
+	recver := NewFunc(uint(rand.Int()), func(interface{}) {
+		startSignal.Do(func() {
+			startSignal.signal <- struct{}{}
+		})
+		n++
+	})
+	sender := NewLoop(func() {
+		recver.Call(0)
+	})
+
+	<-startSignal.signal
 	time.Sleep(time.Millisecond)
 
-	oCall := NewLoop(func() {
-		o.Call(0)
-	})
-	time.Sleep(10 * time.Millisecond)
-	o.Stop()
-	oCall.Stop()
-	o.Join()
-	oCall.Join()
-	if len(o.args) != 0 {
-		t.Errorf("args.len = %v, want 0", len(o.args))
+	recver.Stop()
+	sender.Stop()
+	recver.Join()
+	sender.Join()
+	if len(recver.args) != 0 {
+		t.Errorf("args.len = %v, want 0", len(recver.args))
+	} else {
+		t.Logf("process count: %v", n)
 	}
 }

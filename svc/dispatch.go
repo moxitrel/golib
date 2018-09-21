@@ -76,8 +76,7 @@ func NewDispatch(bufferSize uint, poolMin uint) (v *Dispatch) {
 
 		fun := v.handlers[key]
 		fun(arg)
-	})
-	v.Pool.SetCount(poolMin, uint(v.Pool.max))
+	}).SetCount(poolMin, POOL_MAX)
 	v.Func = NewFunc(bufferSize, v.Pool.Call)
 	return
 }
