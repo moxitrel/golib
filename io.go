@@ -33,7 +33,7 @@ func ReadUnitl(reader io.Reader, ok func([]byte) bool) (buffer []byte, err error
 	if ok == nil {
 		Panic("ok = nil, want !nil")
 	}
-	buffer = BytesPool.Get()
+	buffer = BytesPool.Get(1024)
 	// receive response unitl callback success or timeout
 	var n int
 	for i := 0; ; {

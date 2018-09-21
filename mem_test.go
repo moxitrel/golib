@@ -6,7 +6,7 @@ import (
 )
 
 func TestDefer(t *testing.T) {
-	x := BytesPool.Get()
+	x := BytesPool.Get(0)
 	fmt.Printf("init: %v\n", len(x))
 
 	defer func() {
