@@ -27,7 +27,7 @@ func (o *T) Apply(x ArgT) {
 package svc
 
 import (
-	golib ".."
+	"github.com/moxitrel/golib"
 )
 
 type Func struct {
