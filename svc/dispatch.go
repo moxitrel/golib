@@ -8,8 +8,8 @@ NewDispatch bufferSize:
 package svc
 
 import (
-	golib ".."
 	"fmt"
+	"github.com/moxitrel/golib"
 	"reflect"
 	"sync"
 )

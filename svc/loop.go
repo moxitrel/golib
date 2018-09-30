@@ -6,7 +6,7 @@ NewLoop ^f	: "Loop running f() in background."
 package svc
 
 import (
-	golib ".."
+	"github.com/moxitrel/golib"
 	"sync"
 )
 

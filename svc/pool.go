@@ -10,8 +10,8 @@ func (*Pool) Call    (interface{})
 package svc
 
 import (
-	golib ".."
 	"fmt"
+	"github.com/moxitrel/golib"
 	"math"
 	"sync/atomic"
 	"time"
