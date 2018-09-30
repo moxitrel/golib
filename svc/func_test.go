@@ -71,7 +71,7 @@ func TestFunc_StopCallRace(t *testing.T) {
 	}
 
 	n := uint64(0)
-	recver := NewFunc(uint(rand.Int()), func(interface{}) {
+	recver := NewFunc(uint(rand.Intn(1<<31)), func(interface{}) {
 		startSignal.Do(func() {
 			startSignal.signal <- struct{}{}
 		})

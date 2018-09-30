@@ -26,10 +26,10 @@ func CallTree(n int) (v string) {
 }
 
 // panic with current function's info
-func Panic(format string, args ...interface{}) {
-	panic(errors.New(fmt.Sprintf(Caller(1)+": "+format+"\n", args...)))
+func Panic(v interface{}) {
+	panic(errors.New(fmt.Sprintf("%v: %v\n", Caller(1), v)))
 }
 
-func Warn(format string, args ...interface{}) {
-	fmt.Printf("WARN "+Caller(1)+": "+format+"\n", args...)
+func Warn(v interface{}) {
+	fmt.Printf("WARN %v: %v\n", Caller(1), v)
 }

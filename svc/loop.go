@@ -1,12 +1,12 @@
 /*
-NewLoop f	: "Loop f() in background."
+NewLoop ^f	: "Loop running f() in background."
 		Stop: "Signal service to stop."
 		Join: "Wait service to stop."
 */
 package svc
 
 import (
-	"github.com/moxitrel/golib"
+	golib ".."
 	"sync"
 )
 
@@ -23,8 +23,9 @@ type Loop struct {
 
 func NewLoop(thunk func()) (v *Loop) {
 	if thunk == nil {
-		golib.Panic("^thunk shouldn't be nil!\n")
+		golib.Panic("^thunk shouldn't be nil!")
 	}
+
 	v = &Loop{
 		thunk: thunk,
 		state: RUNNING,

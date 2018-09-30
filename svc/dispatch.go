@@ -2,13 +2,14 @@
 
 NewDispatch bufferSize:
 	Set   	 x cb: "add handler for x.Key"
-	Handle   x   : "sched cb(x)"
+	Call   x   : "sched cb(x)"
 
 */
 package svc
 
 import (
-	"github.com/moxitrel/golib"
+	golib ".."
+	"fmt"
 	"reflect"
 	"sync"
 )
@@ -55,7 +56,7 @@ type MyHandlerService struct {
 // 2. define method Call() with arg has key() attribute
 //
 func (o MyHandlerService) Call(arg T) {
-	o.Dispatch.Handle(arg.Key(), arg)
+	o.Dispatch.Call(arg.Key(), arg)
 }
 
 */
@@ -73,7 +74,6 @@ func NewDispatch(bufferSize uint, poolMin uint) (v *Dispatch) {
 		keyArg := anyKeyArg.([]interface{})
 		key := keyArg[0]
 		arg := keyArg[1]
-
 		fun := v.handlers[key]
 		fun(arg)
 	}).SetCount(poolMin, POOL_MAX)
@@ -86,7 +86,7 @@ func NewDispatch(bufferSize uint, poolMin uint) (v *Dispatch) {
 func (o *Dispatch) Set(key interface{}, fun func(arg interface{})) {
 	// assert invalid key type
 	if ValidateMapKey(reflect.TypeOf(key)) == false {
-		golib.Panic("%t isn't a valid map key type!\n", key)
+		golib.Panic(fmt.Sprintf("%t isn't a valid map key type!\n", key))
 	}
 
 	if fun == nil {
@@ -96,18 +96,18 @@ func (o *Dispatch) Set(key interface{}, fun func(arg interface{})) {
 		o.handlers[key] = fun
 	}
 }
-func (o *Dispatch) Handle(key interface{}, arg interface{}) {
+func (o *Dispatch) Call(key interface{}, arg interface{}) {
 	if ValidateMapKey(reflect.TypeOf(key)) == false {
-		golib.Warn("%t isn't a valid map key type!\n", key)
+		golib.Warn(fmt.Sprintf("%t isn't a valid map key type!\n", key))
 		return
 	}
 	if o.handlers[key] == nil {
-		golib.Warn("%v, handler doesn't exist!\n", key)
+		golib.Warn(fmt.Sprintf("%v, handler doesn't exist!\n", key))
 		return
 	}
-	o.HandleWithoutCheck(key, arg)
+	o.CallWithoutCheck(key, arg)
 }
 
-func (o *Dispatch) HandleWithoutCheck(key interface{}, arg interface{}) {
+func (o *Dispatch) CallWithoutCheck(key interface{}, arg interface{}) {
 	o.Func.Call([]interface{}{key, arg})
 }

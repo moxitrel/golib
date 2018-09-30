@@ -9,9 +9,9 @@ func (*Time) Every 	(time.Duration, func()) 	*Task
 package svc
 
 import (
+	golib ".."
 	"github.com/emirpasic/gods/sets"
 	"github.com/emirpasic/gods/sets/hashset"
-	"github.com/moxitrel/golib"
 	"time"
 )
 

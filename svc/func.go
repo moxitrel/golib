@@ -27,7 +27,7 @@ func (o *T) Apply(x ArgT) {
 package svc
 
 import (
-	"github.com/moxitrel/golib"
+	golib ".."
 )
 
 type Func struct {
@@ -36,15 +36,9 @@ type Func struct {
 	args chan interface{}
 }
 
-const MAX_BUFFER_SIZE = 1 << 24
-
 type _StopSignal struct{}
 
 func NewFunc(bufferSize uint, fun func(interface{})) (v *Func) {
-	if bufferSize > MAX_BUFFER_SIZE {
-		golib.Warn("bufferSize:%v is too large, reset to %v", bufferSize, MAX_BUFFER_SIZE)
-		bufferSize = MAX_BUFFER_SIZE
-	}
 	if fun == nil {
 		golib.Panic("^fun shouldn't be nil!\n")
 	}
@@ -55,14 +49,14 @@ func NewFunc(bufferSize uint, fun func(interface{})) (v *Func) {
 	}
 	v.Loop = NewLoop(func() {
 		arg := <-v.args
-		for {
+		for { // when Stop(), process remaining received args
 			if arg != (_StopSignal{}) {
 				v.fun(arg)
 			}
 			select {
 			case arg = <-v.args:
 			default:
-				return
+				return // break can't quit for loop
 			}
 		}
 	})
@@ -83,16 +77,16 @@ func (o *Func) Call(arg interface{}) {
 }
 
 // XXX: element order in channel can be changed while Call()
-func (o *Func) SetSize(n uint) {
-	oldArgs := o.args
-	o.args = make(chan interface{}, n)
-	oldArgs <- _StopSignal{}
-	for {
-		select {
-		case arg := <-oldArgs:
-			o.args <- arg
-		default:
-			break
-		}
-	}
-}
+//func (o *Func) SetSize(n uint) {
+//	oldArgs := o.args
+//	o.args = make(chan interface{}, n)
+//	oldArgs <- _StopSignal{}
+//	for {
+//		select {
+//		case arg := <-oldArgs:
+//			o.args <- arg
+//		default:
+//			return
+//		}
+//	}
+//}
