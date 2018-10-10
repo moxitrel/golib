@@ -64,17 +64,16 @@ func (o MyHandlerService) Call(arg T) {
 type Dispatch struct {
 	*Func
 	*Pool
-	handlers map[interface{}]func(interface{})
+	handlers *sync.Map
 }
 
 func NewDispatch(bufferSize uint, poolMin uint) (v *Dispatch) {
 	v = new(Dispatch)
-	v.handlers = make(map[interface{}]func(interface{}))
-	v.Pool = NewPool(func(anyKeyArg interface{}) {
-		keyArg := anyKeyArg.([]interface{})
-		key := keyArg[0]
-		arg := keyArg[1]
-		fun := v.handlers[key]
+	v.handlers = new(sync.Map)
+	v.Pool = NewPool(func(anyFunArg interface{}) {
+		funArg := anyFunArg.([]interface{})
+		fun := funArg[0].(func(interface{}))
+		arg := funArg[1]
 		fun(arg)
 	}).SetCount(poolMin, POOL_MAX)
 	v.Func = NewFunc(bufferSize, v.Pool.Call)
@@ -85,29 +84,25 @@ func NewDispatch(bufferSize uint, poolMin uint) (v *Dispatch) {
 // fun: nil, delete the handler according to key
 func (o *Dispatch) Set(key interface{}, fun func(arg interface{})) {
 	// assert invalid key type
-	if ValidateMapKey(reflect.TypeOf(key)) == false {
-		golib.Panic(fmt.Sprintf("%t isn't a valid map key type!\n", key))
-	}
-
+	//if ValidateMapKey(reflect.TypeOf(key)) == false {
+	//	golib.Panic(fmt.Sprintf("%t isn't a valid map key type!\n", key))
+	//}
 	if fun == nil {
 		// delete handler
-		delete(o.handlers, key)
+		o.handlers.Delete(key)
 	} else {
-		o.handlers[key] = fun
+		o.handlers.Store(key, fun)
 	}
 }
 func (o *Dispatch) Call(key interface{}, arg interface{}) {
-	if ValidateMapKey(reflect.TypeOf(key)) == false {
-		golib.Warn(fmt.Sprintf("%t isn't a valid map key type!\n", key))
-		return
-	}
-	if o.handlers[key] == nil {
+	//if ValidateMapKey(reflect.TypeOf(key)) == false {
+	//	golib.Warn(fmt.Sprintf("%t isn't a valid map key type!\n", key))
+	//	return
+	//}
+	fun, _ := o.handlers.Load(key)
+	if fun == nil {
 		golib.Warn(fmt.Sprintf("%v, handler doesn't exist!\n", key))
 		return
 	}
-	o.CallWithoutCheck(key, arg)
-}
-
-func (o *Dispatch) CallWithoutCheck(key interface{}, arg interface{}) {
-	o.Func.Call([]interface{}{key, arg})
+	o.Func.Call([]interface{}{fun, arg})
 }

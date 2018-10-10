@@ -27,7 +27,7 @@ cd $(dirname $0)
 # When invoking the generated test binary (the result of 'go test -c') directly, the 'test.' prefix is mandatory.
 cmd=" go test               "   # 默认测试 pkg in current directory
 #cmd=" $cmd -v               "   # print Log() msg
-cmd=" $cmd -vet             "   # run "go vet $VET_FLAGS" during test
+cmd=" $cmd -vet -all         "   # run "go vet $VET_FLAGS" during test
 #cmd=" $cmd -run $TEST_REGEX "   # run test matching $TEST_REGEX
 cmd=" $cmd -failfast        "   # exit if one of tests failed
 
@@ -36,7 +36,7 @@ cmd=" $cmd -cover                                           "   # coverage analy
 #   count : how many times does this statement run?
 #   atomic: count, but correct in multithreaded tests; significantly more expensive
 #   set   : does this statement run?
-cmd=" $cmd -covermode               $COVER_MODE             "
+#cmd=" $cmd -covermode               $COVER_MODE             "
 #cmd=" $cmd -coverpkg                $COVER_PKG              "   # apply to pkgs match "pattern1,pattern2,pattern3", default for the package being tested
 #cmd=" $cmd -coverprofile            $OUT                    "   # profile coverage
 
