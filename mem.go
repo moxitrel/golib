@@ -16,12 +16,11 @@ var BytesPool = _BytesPool{
 
 func (o *_BytesPool) Get(n uint) (v []byte) {
 	v = o.Pool.Get().([]byte)
-	if v == nil {
-		v = make([]byte, n)
-	} else if uint(cap(v)) >= n {
+	if v != nil && uint(cap(v)) >= n {
 		v = v[:n]
 	} else {
-		o.Put(v)
+		// throw the item (no Put(v)),
+		// or you may always get a []byte whose cap() is always < n
 		v = make([]byte, n)
 	}
 	return
