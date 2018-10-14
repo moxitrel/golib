@@ -6,9 +6,19 @@ type _BytesPool struct {
 	sync.Pool
 }
 
-func (o *_BytesPool) Get(n int) (v []byte) {
+var BytesPool = _BytesPool{
+	Pool: sync.Pool{
+		New: func() interface{} {
+			return []byte(nil)
+		},
+	},
+}
+
+func (o *_BytesPool) Get(n uint) (v []byte) {
 	v = o.Pool.Get().([]byte)
-	if n <= cap(v) {
+	if v == nil {
+		v = make([]byte, n)
+	} else if uint(cap(v)) >= n {
 		v = v[:n]
 	} else {
 		o.Put(v)
@@ -19,12 +29,4 @@ func (o *_BytesPool) Get(n int) (v []byte) {
 
 func (o *_BytesPool) Put(x []byte) {
 	o.Pool.Put(x)
-}
-
-var BytesPool = _BytesPool{
-	Pool: sync.Pool{
-		New: func() interface{} {
-			return make([]byte, 0)
-		},
-	},
 }
