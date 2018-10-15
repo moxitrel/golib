@@ -35,13 +35,11 @@ const (
 )
 
 type Pool struct {
-	fun func(interface{})
-	arg chan interface{}
-
+	// the current number of coroutines
+	// put head to make <cur> 64-bit aligned
+	cur int64
 	// at least <min> coroutines will be created and live all the time
 	min uint32
-	// the current number of coroutines
-	cur int64
 	// the max number of coroutines can be created
 	max uint32
 	// create a new coroutine if <arg> is blocked for <delay> ns
@@ -49,6 +47,9 @@ type Pool struct {
 	delay time.Duration
 	// destroy the coroutine idle for <timeout> ns
 	timeout time.Duration
+
+	fun func(interface{})
+	arg chan interface{}
 }
 
 func NewPool(fun func(interface{})) (v *Pool) {
