@@ -94,6 +94,15 @@ func (o *Dispatch) Set(key interface{}, fun func(arg interface{})) {
 		o.handlers.Store(key, fun)
 	}
 }
+
+func (o *Dispatch) Get(key interface{}) func(interface{}) {
+	v, _ := o.handlers.Load(key)
+	if v == nil {
+		return nil
+	}
+	return v.(func(interface{}))
+}
+
 func (o *Dispatch) Call(key interface{}, arg interface{}) {
 	//if ValidateMapKey(reflect.TypeOf(key)) == false {
 	//	golib.Warn(fmt.Sprintf("%t isn't a valid map key type!\n", key))
