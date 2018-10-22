@@ -49,15 +49,17 @@ func NewFunc(bufferSize uint, fun func(interface{})) (v *Func) {
 	}
 	v.Loop = NewLoop(func() {
 		arg := <-v.args
-		for { // when Stop(), process remaining received args
-			if arg != (_StopSignal{}) {
-				v.fun(arg)
-			}
-			select {
-			case arg = <-v.args:
-			default:
-				return // break can't quit for loop
-			}
+	APPLY:
+		if arg != (_StopSignal{}) {
+			v.fun(arg)
+		}
+		select {
+		case arg = <-v.args:
+			// when Stop(), continue to handle delivered args,
+			// or client may be blocked at .Apply()
+			goto APPLY
+		default:
+			// return
 		}
 	})
 	return
@@ -70,7 +72,7 @@ func (o *Func) Stop() {
 	}
 }
 
-func (o *Func) Call(arg interface{}) {
+func (o *Func) Apply(arg interface{}) {
 	if o.state == RUNNING {
 		o.args <- arg
 	}

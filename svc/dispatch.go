@@ -76,7 +76,7 @@ func NewDispatch(bufferSize uint, poolMin uint) (v *Dispatch) {
 		arg := funArg[1]
 		fun(arg)
 	}).SetCount(poolMin, POOL_MAX)
-	v.Func = NewFunc(bufferSize, v.Pool.Call)
+	v.Func = NewFunc(bufferSize, v.Pool.Apply)
 	return
 }
 
@@ -113,5 +113,5 @@ func (o *Dispatch) Call(key interface{}, arg interface{}) {
 		golib.Warn(fmt.Sprintf("%v, handler doesn't exist!\n", key))
 		return
 	}
-	o.Func.Call([]interface{}{fun, arg})
+	o.Func.Apply([]interface{}{fun, arg})
 }

@@ -17,26 +17,25 @@ import (
 	"time"
 )
 
-// Start [min, max] goroutines of <Pool.fun> to process <Pool.arg>
-//
-// * Example
-// f := func(x interface{}) { time.Sleep(time.Second) }
-// p := NewPool(f)	    // start 2 goroutines of f
-// p.Call("1")			// run f("1") in background and return immediately
-// p.Call("2")			// run f("2") in background and return immediately
-// p.Call("3")			// run f("3") in background after block <Pool.delay> ns
-//
-
 const (
-	POOL_MIN     = 0
-	POOL_MAX     = math.MaxUint16
+	POOL_MIN     = 1
+	POOL_MAX     = math.MaxInt16
 	POOL_DELAY   = 200 * time.Millisecond
 	POOL_TIMEOUT = time.Minute
 )
 
+// Start [min, max] goroutines of <Pool.fun> to process <Pool.arg>
+//
+// * Example
+// f := func(x interface{}) { time.Sleep(time.Second) }
+// p := NewPool(f)	    // start 1 goroutines of f
+// p.Call("1")			// run f("1") in background and return immediately
+// p.Call("2")			// run f("2") in background after block <Pool.delay> ns
+// p.Call("3")			// run f("3") in background after block <Pool.delay> ns
+//
 type Pool struct {
 	// the current number of coroutines
-	// put head to make <cur> 64-bit aligned
+	// put in head to make <cur> 64-bit aligned
 	cur int64
 	// at least <min> coroutines will be created and live all the time
 	min uint32
@@ -45,7 +44,7 @@ type Pool struct {
 	// create a new coroutine if <arg> is blocked for <delay> ns
 	// a proper value should be >= 0.1s
 	delay time.Duration
-	// destroy the coroutine idle for <timeout> ns
+	// destroy the coroutines which idle for <timeout> ns
 	timeout time.Duration
 
 	fun func(interface{})
@@ -96,22 +95,17 @@ func (o *Pool) SetCount(min uint, max uint) *Pool {
 	return o
 }
 
-func (o *Pool) Call(arg interface{}) {
+func (o *Pool) Apply(arg interface{}) {
 	select {
 	case o.arg <- arg:
-		// ensure <o.arg> is blocked
-	default:
-		select {
-		case o.arg <- arg:
-		case <-time.After(o.delay):
-			// If <delay> is too small, select may choose this case even <o.arg> isn't blocked.
-			if o.newProcess() {
-				// NOTE: expect the new process has started by delay when try again
-				o.Call(arg)
-			} else {
-				// wait if no more coroutine can be created
-				o.arg <- arg
-			}
+	case <-time.After(o.delay):
+		// If <delay> is too small, select may choose this case even <o.arg> isn't blocked.
+		if o.newProcess() {
+			// NOTE: expect the new process has been started between delay when try again
+			o.Apply(arg)
+		} else {
+			// wait if no more goroutine can be created
+			o.arg <- arg
 		}
 	}
 }
@@ -128,13 +122,19 @@ func (o *Pool) newProcess() bool {
 	loop = NewLoop(func() {
 		select {
 		case arg := <-o.arg:
+			// skip creating timer when busy
 			o.fun(arg)
-		case <-time.After(o.timeout): // quit if idle for <timeout> ns
-			if atomic.AddInt64(&o.cur, -1) >= int64(o.min) {
-				loop.Stop()
-			} else {
-				// coroutine isn't killed, restore the value
-				atomic.AddInt64(&o.cur, 1)
+		default:
+			select {
+			case arg := <-o.arg:
+				o.fun(arg)
+			case <-time.After(o.timeout): // quit if idle for <timeout> ns
+				if atomic.AddInt64(&o.cur, -1) >= int64(o.min) {
+					loop.Stop()
+				} else {
+					// coroutine isn't killed, restore the value
+					atomic.AddInt64(&o.cur, 1)
+				}
 			}
 		}
 	})

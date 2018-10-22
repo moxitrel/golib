@@ -34,9 +34,9 @@ func TestFunc_New(t *testing.T) {
 	})
 	defer o.Stop()
 
-	o.Call(1)
-	o.Call(2)
-	o.Call(3)
+	o.Apply(1)
+	o.Apply(2)
+	o.Apply(3)
 
 	for _, v := range []int{1, 2, 3} {
 		<-signalBegin
@@ -56,7 +56,7 @@ func TestFunc_CallAfterStop(t *testing.T) {
 	o.Join()
 
 	// no effect after stop
-	o.Call(1)
+	o.Apply(1)
 	if x != 0 {
 		t.Errorf("x = %v, want 0", x)
 	}
@@ -78,7 +78,7 @@ func TestFunc_StopCallRace(t *testing.T) {
 		n++
 	})
 	sender := NewLoop(func() {
-		recver.Call(0)
+		recver.Apply(0)
 	})
 
 	<-startSignal.signal

@@ -29,6 +29,41 @@ func Test_Select(t *testing.T) {
 	}
 }
 
+func Test_NestedSelect(t *testing.T) {
+	signal := make(chan struct{})
+	go func() {
+		signal <- struct{}{}
+	}()
+	time.Sleep(time.Millisecond)
+
+	n := 0
+	timeout := time.Second
+	timeAfter := func() <-chan time.Time {
+		n += 1
+		return time.After(timeout)
+	}
+
+	flag := 0
+	select {
+	case <-signal:
+		flag = 1
+	default:
+		select {
+		case <-signal:
+			flag = 2
+		case <-timeAfter(): // quit if idle for <timeout> ns
+			flag = 3
+		}
+	}
+
+	if flag != 1 {
+		t.Errorf("flag = %v, want 1", flag)
+	}
+	if n > 0 {
+		t.Errorf("n = %v, want 0", n)
+	}
+}
+
 //func TestPool_NumGoroutine(t *testing.T) {
 //	ngoBegin := runtime.NumGoroutine()
 //
@@ -90,7 +125,7 @@ func TestPool_Example(t *testing.T) {
 	time.Sleep(timeout)
 
 	for i := 0; i < cap(ts); i++ {
-		f.Call(nil)
+		f.Apply(nil)
 	}
 
 	for i := 0; i < len(ts)-1; i++ {
