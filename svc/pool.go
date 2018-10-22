@@ -122,7 +122,7 @@ func (o *Pool) newProcess() bool {
 	loop = NewLoop(func() {
 		select {
 		case arg := <-o.arg:
-			// skip creating timer when busy
+			// the outer select: skip creating timer when busy
 			o.fun(arg)
 		default:
 			select {
