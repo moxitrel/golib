@@ -139,3 +139,13 @@ func TestPool_Example(t *testing.T) {
 		time.Sleep(f.timeout / 2)
 	}
 }
+
+func TestTicker(t *testing.T) {
+	ticker := time.NewTicker(time.Second)
+	for i := 0; i < 3; i++ {
+		t.Logf("%v", <-ticker.C)
+		intvl := time.Duration(rand.Intn(100)) * time.Millisecond
+		t.Logf("%v", intvl)
+		time.Sleep(intvl)
+	}
+}
