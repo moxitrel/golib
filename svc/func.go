@@ -28,7 +28,10 @@ package svc
 
 import (
 	"github.com/moxitrel/golib"
+	"math"
 )
+
+const defaultArgsSize = math.MaxUint16
 
 type Func struct {
 	*Loop
@@ -38,14 +41,17 @@ type Func struct {
 
 type _StopSignal struct{}
 
-func NewFunc(bufferSize uint, fun func(interface{})) (v *Func) {
+func NewFunc(fun func(interface{})) (v *Func) {
+	return NewFuncWithSize(defaultArgsSize, fun)
+}
+
+func NewFuncWithSize(argsCap uint, fun func(interface{})) (v *Func) {
 	if fun == nil {
 		golib.Panic("^fun shouldn't be nil!\n")
 	}
-
 	v = &Func{
 		fun:  fun,
-		args: make(chan interface{}, bufferSize),
+		args: make(chan interface{}, argsCap),
 	}
 	v.Loop = NewLoop(func() {
 		arg := <-v.args
@@ -78,17 +84,12 @@ func (o *Func) Apply(arg interface{}) {
 	}
 }
 
-// XXX: element order in channel can be changed while Call()
-//func (o *Func) SetSize(n uint) {
-//	oldArgs := o.args
-//	o.args = make(chan interface{}, n)
-//	oldArgs <- _StopSignal{}
-//	for {
-//		select {
-//		case arg := <-oldArgs:
-//			o.args <- arg
-//		default:
-//			return
-//		}
-//	}
-//}
+func (o *Func) WithSize(argsCap uint) *Func {
+	if argsCap == uint(cap(o.args)) {
+		return o
+	}
+	old := *o
+	*o = *NewFuncWithSize(argsCap, o.fun)
+	old.Stop()
+	return o
+}

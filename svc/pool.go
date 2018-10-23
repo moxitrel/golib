@@ -18,10 +18,10 @@ import (
 )
 
 const (
-	poolMin     = 0
-	poolMax     = math.MaxUint16
-	poolDelay   = 200 * time.Millisecond
-	poolTimeout = time.Minute
+	defaultPoolMin     = 0
+	defaultPoolMax     = math.MaxUint16
+	defaultPoolDelay   = 200 * time.Millisecond
+	defaultPoolTimeout = time.Minute
 )
 
 // Start [min, max] goroutines of <Pool.fun> to process <Pool.arg>
@@ -59,11 +59,11 @@ func NewPool(fun func(interface{})) (v *Pool) {
 	v = &Pool{
 		fun:     fun,
 		arg:     make(chan interface{}),
-		min:     poolMin,
+		min:     defaultPoolMin,
 		cur:     0,
-		max:     poolMax,
-		delay:   poolDelay,
-		timeout: poolTimeout,
+		max:     defaultPoolMax,
+		delay:   defaultPoolDelay,
+		timeout: defaultPoolTimeout,
 	}
 	for v.cur < int64(v.min) {
 		v.newProcess()

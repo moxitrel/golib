@@ -69,15 +69,15 @@ func Test_NestedSelect(t *testing.T) {
 //
 //	delay := time.Millisecond
 //	timeout := time.Second
-//	min := rand.Intn(poolMax) + poolMin
-//	if min > poolMax {
-//		min = poolMax
+//	min := rand.Intn(defaultPoolMax) + defaultPoolMin
+//	if min > defaultPoolMax {
+//		min = defaultPoolMax
 //	}
 //	f := NewPool(func(_ interface{}) {
 //		time.Sleep(time.Second)
 //	}).
 //		WithTime(delay, timeout).
-//		WithCount(uint(min), poolMax)
+//		WithCount(uint(min), defaultPoolMax)
 //	time.Sleep(time.Millisecond) // wait goroutines to start completely
 //
 //	ngoNewPool := runtime.NumGoroutine()
@@ -85,7 +85,7 @@ func Test_NestedSelect(t *testing.T) {
 //		t.Fatalf("Goroutine.Count: %v, want %v", ngoNewPool, ngoBegin+min)
 //	}
 //
-//	nCall := int(rand.Intn(poolMax))
+//	nCall := int(rand.Intn(defaultPoolMax))
 //	for i := 0; i < nCall; i++ {
 //		f.Call(nil)
 //	}
@@ -121,7 +121,7 @@ func TestPool_Example(t *testing.T) {
 		time.Sleep(timeout)
 	})
 	f.WithTime(delay, timeout)
-	f.WithCount(1, poolMax)
+	f.WithCount(1, defaultPoolMax)
 	time.Sleep(timeout)
 
 	for i := 0; i < cap(ts); i++ {

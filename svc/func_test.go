@@ -1,7 +1,6 @@
 package svc
 
 import (
-	"math"
 	"math/rand"
 	"sync"
 	"testing"
@@ -27,7 +26,7 @@ func TestFunc_New(t *testing.T) {
 	var x = 0
 	signalBegin := make(chan struct{})
 	signalEnd := make(chan struct{})
-	o := NewFunc(math.MaxUint8, func(arg interface{}) {
+	o := NewFunc(func(arg interface{}) {
 		signalBegin <- struct{}{}
 		x = arg.(int)
 		signalEnd <- struct{}{}
@@ -49,7 +48,7 @@ func TestFunc_New(t *testing.T) {
 
 func TestFunc_CallAfterStop(t *testing.T) {
 	var x = 0
-	o := NewFunc(math.MaxUint8, func(arg interface{}) {
+	o := NewFunc(func(arg interface{}) {
 		x = arg.(int)
 	})
 	o.Stop()
@@ -71,12 +70,12 @@ func TestFunc_StopCallRace(t *testing.T) {
 	}
 
 	n := uint64(0)
-	recver := NewFunc(uint(rand.Intn(1<<31)), func(interface{}) {
+	recver := NewFunc(func(interface{}) {
 		startSignal.Do(func() {
 			startSignal.signal <- struct{}{}
 		})
 		n++
-	})
+	}).WithSize(uint(rand.Intn(1 << 31)))
 	sender := NewLoop(func() {
 		recver.Apply(0)
 	})

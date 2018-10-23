@@ -1,7 +1,7 @@
 /*
 
 NewDispatch bufferSize:
-	Set   	 x cb: "add handler for x.Key"
+	Set    x cb: "add handler for x.Key"
 	Call   x   : "sched cb(x)"
 
 */
@@ -71,13 +71,20 @@ func NewDispatch(bufferSize uint, poolMin uint) (v *Dispatch) {
 	v = new(Dispatch)
 	v.handlers = new(sync.Map)
 	v.Pool = NewPool(func(anyFunArg interface{}) {
-		funArg := anyFunArg.([]interface{})
+		funArg := anyFunArg.([2]interface{})
 		fun := funArg[0].(func(interface{}))
 		arg := funArg[1]
 		fun(arg)
-	}).WithCount(poolMin, poolMax)
-	v.Func = NewFunc(bufferSize, v.Pool.Apply)
+	}).WithCount(poolMin, defaultPoolMax)
+	v.Func = NewFuncWithSize(bufferSize, v.Pool.Apply)
 	return
+}
+
+func (o *Dispatch) Stop() {
+	if o.state == RUNNING {
+		o.Func.Stop()
+		o.Pool.WithTime(o.Pool.delay, 0)
+	}
 }
 
 // key: key's type shoudn't be function, slice, map or struct contains function, slice or map field
@@ -113,5 +120,5 @@ func (o *Dispatch) Apply(key interface{}, arg interface{}) {
 		golib.Warn(fmt.Sprintf("%v, handler doesn't exist!\n", key))
 		return
 	}
-	o.Func.Apply([]interface{}{fun, arg})
+	o.Func.Apply([2]interface{}{fun, arg})
 }
