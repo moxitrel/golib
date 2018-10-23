@@ -1,8 +1,8 @@
 /*
 
 func         NewPool (func (interface{})                        ) *Pool
-func (*Pool) SetCount(min   uint         , max     uint         ) *Pool
-func (*Pool) SetTime (delay time.Duration, timeout time.Duration) *Pool
+func (*Pool) WithCount(min   uint         , max     uint         ) *Pool
+func (*Pool) WithTime (delay time.Duration, timeout time.Duration) *Pool
 
 func (*Pool) Call    (interface{})
 
@@ -18,10 +18,10 @@ import (
 )
 
 const (
-	POOL_MIN     = 1
-	POOL_MAX     = math.MaxInt16
-	POOL_DELAY   = 200 * time.Millisecond
-	POOL_TIMEOUT = time.Minute
+	poolMin     = 0
+	poolMax     = math.MaxUint16
+	poolDelay   = 200 * time.Millisecond
+	poolTimeout = time.Minute
 )
 
 // Start [min, max] goroutines of <Pool.fun> to process <Pool.arg>
@@ -59,11 +59,11 @@ func NewPool(fun func(interface{})) (v *Pool) {
 	v = &Pool{
 		fun:     fun,
 		arg:     make(chan interface{}),
-		min:     POOL_MIN,
+		min:     poolMin,
 		cur:     0,
-		max:     POOL_MAX,
-		delay:   POOL_DELAY,
-		timeout: POOL_TIMEOUT,
+		max:     poolMax,
+		delay:   poolDelay,
+		timeout: poolTimeout,
 	}
 	for v.cur < int64(v.min) {
 		v.newProcess()
@@ -74,14 +74,14 @@ func NewPool(fun func(interface{})) (v *Pool) {
 // Set when to create or kill a goroutine.
 // A new goroutine will be created after the argument blocked for ^delay ns.
 // A goroutine will be killed after idle for ^timeout ns
-func (o *Pool) SetTime(delay time.Duration, timeout time.Duration) *Pool {
+func (o *Pool) WithTime(delay time.Duration, timeout time.Duration) *Pool {
 	o.delay = delay
 	o.timeout = timeout
 	return o
 }
 
 // Change how many goroutines the Pool can create, ^min <= count <= ^max.
-func (o *Pool) SetCount(min uint, max uint) *Pool {
+func (o *Pool) WithCount(min uint, max uint) *Pool {
 	if min > max {
 		golib.Warn(fmt.Sprintf("min:%v > max:%v !", min, max))
 		min = max

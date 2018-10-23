@@ -22,7 +22,7 @@ func TestDispatch_Example(t *testing.T) {
 	})
 
 	arg := "11:56"
-	o.Call(key(arg), arg)
+	o.Apply(key(arg), arg)
 	time.Sleep(o.delay + 100*time.Millisecond)
 	if v != arg {
 		t.Errorf("v = %v, want %v", v, arg)

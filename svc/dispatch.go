@@ -75,7 +75,7 @@ func NewDispatch(bufferSize uint, poolMin uint) (v *Dispatch) {
 		fun := funArg[0].(func(interface{}))
 		arg := funArg[1]
 		fun(arg)
-	}).SetCount(poolMin, POOL_MAX)
+	}).WithCount(poolMin, poolMax)
 	v.Func = NewFunc(bufferSize, v.Pool.Apply)
 	return
 }
@@ -103,7 +103,7 @@ func (o *Dispatch) Get(key interface{}) func(interface{}) {
 	return v.(func(interface{}))
 }
 
-func (o *Dispatch) Call(key interface{}, arg interface{}) {
+func (o *Dispatch) Apply(key interface{}, arg interface{}) {
 	//if ValidateMapKey(reflect.TypeOf(key)) == false {
 	//	golib.Warn(fmt.Sprintf("%t isn't a valid map key type!\n", key))
 	//	return
