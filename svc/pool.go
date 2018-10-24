@@ -1,6 +1,6 @@
 /*
 
-func         NewPool (func (interface{})                        ) *Pool
+func         PoolWrap (func (interface{})                        ) *Pool
 func (*Pool) WithCount(min   uint         , max     uint         ) *Pool
 func (*Pool) WithTime (delay time.Duration, timeout time.Duration) *Pool
 
@@ -28,7 +28,7 @@ const (
 //
 // * Example
 // f := func(x interface{}) { time.Sleep(time.Second) }
-// p := NewPool(f)	    // start 1 goroutines of f
+// p := PoolWrap(f)	    // start 1 goroutines of f
 // p.Call("1")			// run f("1") in background and return immediately
 // p.Call("2")			// run f("2") in background after block <Pool.delay> ns
 // p.Call("3")			// run f("3") in background after block <Pool.delay> ns
@@ -51,7 +51,7 @@ type Pool struct {
 	arg chan interface{}
 }
 
-func NewPool(fun func(interface{})) (v *Pool) {
+func NewPool(min, max uint, delay, timeout time.Duration, fun func(interface{})) (v *Pool) {
 	if fun == nil {
 		golib.Panic("^fun shouldn't be nil!\n")
 	}
@@ -59,11 +59,11 @@ func NewPool(fun func(interface{})) (v *Pool) {
 	v = &Pool{
 		fun:     fun,
 		arg:     make(chan interface{}),
-		min:     defaultPoolMin,
+		min:     uint32(min),
 		cur:     0,
-		max:     defaultPoolMax,
-		delay:   defaultPoolDelay,
-		timeout: defaultPoolTimeout,
+		max:     uint32(max),
+		delay:   delay,
+		timeout: timeout,
 	}
 	for v.cur < int64(v.min) {
 		v.newProcess()
@@ -71,43 +71,8 @@ func NewPool(fun func(interface{})) (v *Pool) {
 	return
 }
 
-// Set when to create or kill a goroutine.
-// A new goroutine will be created after the argument blocked for ^delay ns.
-// A goroutine will be killed after idle for ^timeout ns
-func (o *Pool) WithTime(delay time.Duration, timeout time.Duration) *Pool {
-	o.delay = delay
-	o.timeout = timeout
-	return o
-}
-
-// Change how many goroutines the Pool can create, ^min <= count <= ^max.
-func (o *Pool) WithCount(min uint, max uint) *Pool {
-	if min > max {
-		golib.Warn(fmt.Sprintf("min:%v > max:%v !", min, max))
-		min = max
-	}
-
-	o.min = uint32(min)
-	o.max = uint32(max)
-	for o.cur < int64(o.min) {
-		o.newProcess()
-	}
-	return o
-}
-
-func (o *Pool) Apply(arg interface{}) {
-	select {
-	case o.arg <- arg:
-	case <-time.After(o.delay):
-		// If <delay> is too small, select may choose this case even <o.arg> isn't blocked.
-		if o.newProcess() {
-			// NOTE: expect the new process has been started between delay when try again
-			o.Apply(arg)
-		} else {
-			// wait if no more goroutine can be created
-			o.arg <- arg
-		}
-	}
+func PoolWrap(fun func(interface{})) (v *Pool) {
+	return NewPool(defaultPoolMin, defaultPoolMax, defaultPoolDelay, defaultPoolTimeout, fun)
 }
 
 // The created coroutine won't quit unless time out. Set min to 0 if want to quit all.
@@ -140,4 +105,48 @@ func (o *Pool) newProcess() bool {
 	})
 
 	return true
+}
+
+func (o *Pool) Apply(arg interface{}) {
+	if o.cur >= int64(o.max) {
+		// no more goroutine can be created
+		o.arg <- arg
+	} else {
+		select {
+		case o.arg <- arg:
+		case <-time.After(o.delay):
+			// If <delay> is too small, select may choose this case even <o.arg> isn't blocked.
+			if o.newProcess() {
+				// NOTE: expect the new process has been started between delay when try again
+				o.Apply(arg)
+			} else {
+				// wait if no more goroutine can be created
+				o.arg <- arg
+			}
+		}
+	}
+}
+
+// Set when to create or kill a goroutine.
+// A new goroutine will be created after the argument blocked for ^delay ns.
+// A goroutine will be killed after idle for ^timeout ns
+func (o *Pool) WithTime(delay time.Duration, timeout time.Duration) *Pool {
+	o.delay = delay
+	o.timeout = timeout
+	return o
+}
+
+// Change how many goroutines the Pool can create, ^min <= count <= ^max.
+func (o *Pool) WithCount(min uint, max uint) *Pool {
+	if min > max {
+		golib.Warn(fmt.Sprintf("min:%v > max:%v !", min, max))
+		min = max
+	}
+
+	o.min = uint32(min)
+	o.max = uint32(max)
+	for o.cur < int64(o.min) {
+		o.newProcess()
+	}
+	return o
 }

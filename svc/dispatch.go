@@ -70,13 +70,13 @@ type Dispatch struct {
 func NewDispatch(bufferSize uint, poolMin uint) (v *Dispatch) {
 	v = new(Dispatch)
 	v.handlers = new(sync.Map)
-	v.Pool = NewPool(func(anyFunArg interface{}) {
+	v.Pool = PoolWrap(func(anyFunArg interface{}) {
 		funArg := anyFunArg.([2]interface{})
 		fun := funArg[0].(func(interface{}))
 		arg := funArg[1]
 		fun(arg)
 	}).WithCount(poolMin, defaultPoolMax)
-	v.Func = NewFuncWithSize(bufferSize, v.Pool.Apply)
+	v.Func = NewFunc(bufferSize, v.Pool.Apply)
 	return
 }
 

@@ -26,7 +26,7 @@ func TestFunc_New(t *testing.T) {
 	var x = 0
 	signalBegin := make(chan struct{})
 	signalEnd := make(chan struct{})
-	o := NewFunc(func(arg interface{}) {
+	o := FuncWrap(func(arg interface{}) {
 		signalBegin <- struct{}{}
 		x = arg.(int)
 		signalEnd <- struct{}{}
@@ -48,7 +48,7 @@ func TestFunc_New(t *testing.T) {
 
 func TestFunc_CallAfterStop(t *testing.T) {
 	var x = 0
-	o := NewFunc(func(arg interface{}) {
+	o := FuncWrap(func(arg interface{}) {
 		x = arg.(int)
 	})
 	o.Stop()
@@ -70,7 +70,7 @@ func TestFunc_StopCallRace(t *testing.T) {
 	}
 
 	n := uint64(0)
-	recver := NewFunc(func(interface{}) {
+	recver := FuncWrap(func(interface{}) {
 		startSignal.Do(func() {
 			startSignal.signal <- struct{}{}
 		})

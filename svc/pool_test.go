@@ -73,7 +73,7 @@ func Test_NestedSelect(t *testing.T) {
 //	if min > defaultPoolMax {
 //		min = defaultPoolMax
 //	}
-//	f := NewPool(func(_ interface{}) {
+//	f := PoolWrap(func(_ interface{}) {
 //		time.Sleep(time.Second)
 //	}).
 //		WithTime(delay, timeout).
@@ -116,7 +116,7 @@ func TestPool_Example(t *testing.T) {
 	delay := 10 * time.Millisecond
 	timeout := (delay + 5*time.Millisecond) * time.Duration(cap(ts))
 
-	f := NewPool(func(x interface{}) {
+	f := PoolWrap(func(x interface{}) {
 		ts = append(ts, time.Now())
 		time.Sleep(timeout)
 	})

@@ -1,6 +1,6 @@
 /*
 
-NewFunc (Any -> ())	: "loop f(arg)"
+FuncWrap (Any -> ())	: "loop f(arg)"
 	Apply Any : "sched f(arg)"
 
 *** e.g.
@@ -12,7 +12,7 @@ type T struct {
 
 // 2. define construction
 func NewF() T {
-	return &F{NewFunc(func(argAny interface{}) {
+	return &F{FuncWrap(func(argAny interface{}) {
 		arg := argAny.(ArgT)	// recover the type
 		...
 	})}
@@ -41,11 +41,7 @@ type Func struct {
 
 type _StopSignal struct{}
 
-func NewFunc(fun func(interface{})) (v *Func) {
-	return NewFuncWithSize(defaultArgsSize, fun)
-}
-
-func NewFuncWithSize(argsCap uint, fun func(interface{})) (v *Func) {
+func NewFunc(argsCap uint, fun func(interface{})) (v *Func) {
 	if fun == nil {
 		golib.Panic("^fun shouldn't be nil!\n")
 	}
@@ -71,6 +67,10 @@ func NewFuncWithSize(argsCap uint, fun func(interface{})) (v *Func) {
 	return
 }
 
+func FuncWrap(fun func(interface{})) (v *Func) {
+	return NewFunc(defaultArgsSize, fun)
+}
+
 func (o *Func) Stop() {
 	if o.state == RUNNING {
 		o.Loop.Stop()
@@ -89,7 +89,7 @@ func (o *Func) WithSize(argsCap uint) *Func {
 		return o
 	}
 	old := *o
-	*o = *NewFuncWithSize(argsCap, o.fun)
+	*o = *NewFunc(argsCap, o.fun)
 	old.Stop()
 	return o
 }
