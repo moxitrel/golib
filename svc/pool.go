@@ -109,7 +109,7 @@ func (o *Pool) newProcess() bool {
 
 func (o *Pool) Apply(arg interface{}) {
 	if o.cur >= int64(o.max) {
-		// no more goroutine can be created
+		// skip creating timer, when busy and no more goroutine can be created
 		o.arg <- arg
 	} else {
 		select {
