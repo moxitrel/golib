@@ -18,3 +18,15 @@ func Test_TimeEvery(t *testing.T) {
 	})
 	time.Sleep(5 * intvl)
 }
+
+func TestTime(t *testing.T) {
+	i := 0
+	timed := NewTime(time.Millisecond)
+	timed.add(func() {
+		i++
+		t.Logf("%v: %v", i, time.Now())
+	})
+	time.Sleep(time.Second)
+	timed.Stop()
+	timed.Join()
+}
