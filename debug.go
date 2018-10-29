@@ -50,7 +50,7 @@ func Panic(format string, args ...interface{}) {
 }
 
 func Warn(format string, args ...interface{}) {
-	fmt.Printf("WARN %v: ", callerPath(1))
+	fmt.Printf("WARN %v: ", callerPath(2))
 	fmt.Printf(format, args...)
 	fmt.Printf("\n")
 }
