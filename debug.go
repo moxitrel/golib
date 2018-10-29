@@ -5,31 +5,38 @@ import (
 	"fmt"
 	"path"
 	"runtime"
+	"strings"
 )
 
 // <pkg>.<func>.<line-no>
-func Caller(n int) string {
-	pc, _, line, ok := runtime.Caller(n + 1)
+func callerPos(n int) string {
+	pc, _, line, ok := runtime.Caller(n)
 	if !ok {
 		return ""
 	}
 	return fmt.Sprintf("%s.%d", path.Base(runtime.FuncForPC(pc).Name()), line)
 }
 
-func CallTree(n int) (v string) {
-	for i := n + 1; i > 1; i-- {
-		v += Caller(i)
-		v += " : "
+func CallerPos() string {
+	var s strings.Builder
+
+	pcs := make([]uintptr, 64)
+	n := runtime.Callers(0, pcs)
+	for i := n - 1; i > 2; i-- {
+		s.WriteString(callerPos(i))
+		s.WriteString(" -> ")
 	}
-	v += Caller(1)
-	return v
+	s.WriteString(callerPos(2))
+	return s.String()
 }
 
 // panic with current function's info
-func Panic(v interface{}) {
-	panic(errors.New(fmt.Sprintf("%v: %v\n", Caller(1), v)))
+func Panic(format string, args ...interface{}) {
+	panic(errors.New(fmt.Sprintf(CallerPos()+": "+format+"\n", args...)))
 }
 
-func Warn(v interface{}) {
-	fmt.Printf("WARN %v: %v\n", Caller(1), v)
+func Warn(format string, args ...interface{}) {
+	fmt.Printf("WARN %v: ", CallerPos())
+	fmt.Printf(format, args...)
+	fmt.Printf("\n")
 }

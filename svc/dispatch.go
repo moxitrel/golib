@@ -8,7 +8,6 @@ NewDispatch bufferSize:
 package svc
 
 import (
-	"fmt"
 	"github.com/moxitrel/golib"
 	"reflect"
 	"sync"
@@ -117,7 +116,7 @@ func (o *Dispatch) Apply(key interface{}, arg interface{}) {
 	//}
 	fun, _ := o.handlers.Load(key)
 	if fun == nil {
-		golib.Warn(fmt.Sprintf("%v, handler doesn't exist!\n", key))
+		golib.Warn("%#v, handler doesn't exist!", key)
 		return
 	}
 	o.Func.Apply([2]interface{}{fun, arg})

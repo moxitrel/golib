@@ -21,7 +21,6 @@ func WriteAll(writer io.Writer, data []byte) error {
 	if n < len(data) {
 		return WriteAll(writer, data[n:])
 	}
-
 	return nil
 }
 

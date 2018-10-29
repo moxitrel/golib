@@ -24,3 +24,8 @@ func Test_BytesPool(t *testing.T) {
 	t.Logf("x.cap: %v", cap(x))
 	BytesPool.Put(x)
 }
+
+func TestCap(t *testing.T) {
+	var x []byte
+	t.Logf("cap x: %v", cap(x))
+}

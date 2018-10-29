@@ -16,7 +16,7 @@ var BytesPool = _BytesPool{
 
 func (o *_BytesPool) Get(n uint) (v []byte) {
 	v = o.Pool.Get().([]byte)
-	if v != nil && uint(cap(v)) >= n {
+	if uint(cap(v)) >= n {
 		v = v[:n]
 	} else {
 		// throw the item (no Put(v)),
