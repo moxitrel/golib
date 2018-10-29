@@ -17,7 +17,7 @@ func callerPath(n int) string {
 	}
 	return fmt.Sprintf("%v/%v()/%v",
 		strings.TrimPrefix(file, build.Default.GOPATH),
-		strings.Split(path.Base(runtime.FuncForPC(pc).Name()), ".")[1],
+		strings.SplitN(path.Base(runtime.FuncForPC(pc).Name()), ".", 2)[1], // remove package prefix
 		line)
 }
 
