@@ -123,7 +123,7 @@ func TestPool_Example(t *testing.T) {
 	time.Sleep(timeout)
 
 	for i := 0; i < cap(ts); i++ {
-		f.Call(nil)
+		f.GetCall()(nil)
 	}
 
 	for i := 0; i < len(ts)-1; i++ {

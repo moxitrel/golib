@@ -75,7 +75,7 @@ func NewDispatch(bufferSize uint, poolMin uint) (v *Dispatch) {
 		arg := funArg[1]
 		fun(arg)
 	})
-	v.Func = NewFunc(bufferSize, v.Pool.Call)
+	v.Func = NewFunc(bufferSize, v.Pool.GetCall())
 	return
 }
 

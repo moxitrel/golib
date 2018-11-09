@@ -46,13 +46,12 @@ func NewLoop(thunk func()) (o *Loop) {
 	return
 }
 
-// Get current running state
+// Get current running state.
 func (o *Loop) State() uintptr {
 	return atomic.LoadUintptr(&o.state)
 }
 
-// Signal to stop running.
-// May not stop immediately.
+// Signal to stop running. May not stop immediately.
 func (o *Loop) Stop() {
 	atomic.StoreUintptr(&o.state, STOPPED)
 }

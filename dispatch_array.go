@@ -35,18 +35,17 @@ func (o *ArrayDispatch) Add(handler func(interface{})) (index uintptr) {
 // Apply the <arg> with the function has the key <index>
 // index: should be the value return from Add(), or panic
 func (o *ArrayDispatch) UnsafeCall(index uintptr, arg interface{}) {
-	handler := o.pool[index]
-	handler(arg)
+	o.pool[index](arg)
 }
 
-//func (o *SliceDispatch) Call(index uintptr, arg interface{}) {
-//	poolLen := atomic.LoadUintptr(&o.poolLen)
-//	if index >= poolLen {
-//		Panic("index:%v is out of range:%v", index, poolLen)
-//	}
-//	handler := o.pool[index]
-//	if handler == nil {
-//		Panic("%v, hasn't inited", index)
-//	}
-//	handler(arg)
-//}
+func (o *ArrayDispatch) Call(index uintptr, arg interface{}) {
+	poolLen := atomic.LoadUintptr(&o.poolLen)
+	if index >= poolLen {
+		Panic("index:%v is out of range:%v", index, poolLen)
+	}
+	handler := o.pool[index]
+	if handler == nil {
+		Panic("%v hasn't been registed", index)
+	}
+	handler(arg)
+}
