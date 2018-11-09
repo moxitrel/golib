@@ -1,6 +1,6 @@
 /*
 
-NewDispatch bufferSize:
+MakeArrayDispatch bufferSize:
 	Set    x cb: "add handler for x.Key"
 	Call   x   : "sched cb(x)"
 
@@ -69,13 +69,13 @@ type Dispatch struct {
 func NewDispatch(bufferSize uint, poolMin uint) (v *Dispatch) {
 	v = new(Dispatch)
 	v.handlers = new(sync.Map)
-	v.Pool = PoolWrap(func(anyFunArg interface{}) {
+	v.Pool = NewPool(poolMin, _POOL_MAX, _POOL_DELAY, _POOL_TIMEOUT, func(anyFunArg interface{}) {
 		funArg := anyFunArg.([2]interface{})
 		fun := funArg[0].(func(interface{}))
 		arg := funArg[1]
 		fun(arg)
-	}).WithCount(poolMin, defaultPoolMax)
-	v.Func = NewFunc(bufferSize, v.Pool.Apply)
+	})
+	v.Func = NewFunc(bufferSize, v.Pool.Call)
 	return
 }
 
@@ -119,5 +119,5 @@ func (o *Dispatch) Apply(key interface{}, arg interface{}) {
 		golib.Warn("%#v, handler doesn't exist!", key)
 		return
 	}
-	o.Func.Apply([2]interface{}{fun, arg})
+	o.Func.Call([2]interface{}{fun, arg})
 }

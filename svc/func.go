@@ -1,7 +1,7 @@
 /*
 
 FuncWrap (Any -> ())	: "loop f(arg)"
-	Apply Any : "sched f(arg)"
+	Call Any : "sched f(arg)"
 
 *** e.g.
 
@@ -18,9 +18,9 @@ func NewF() T {
 	})}
 }
 
-// 3. override Apply() with desired type
-func (o *T) Apply(x ArgT) {
-	o.Func.Apply(x)
+// 3. override Call() with desired type
+func (o *T) Call(x ArgT) {
+	o.Func.Call(x)
 }
 
 */
@@ -31,35 +31,38 @@ import (
 	"math"
 )
 
-const defaultArgsSize = math.MaxUint16
-
+// Loop running fun(arg) in a new goroutine.
 type Func struct {
 	*Loop
 	fun  func(interface{})
-	args chan interface{}
+	args chan interface{} // argument buffer
 }
 
 type _StopSignal struct{}
 
-func NewFunc(argsCap uint, fun func(interface{})) (v *Func) {
+// Make a new Func service.
+// argsCap: the max number of argument can be buffered.
+// fun: panic if nil.
+func NewFunc(argsCap uint, fun func(interface{})) (o *Func) {
 	if fun == nil {
-		golib.Panic("^fun shouldn't be nil!\n")
+		golib.Panic("fun == nil, want !nil")
 	}
-	v = &Func{
+
+	o = &Func{
 		fun:  fun,
 		args: make(chan interface{}, argsCap),
 	}
-	v.Loop = NewLoop(func() {
-		arg := <-v.args
-	APPLY:
+	o.Loop = NewLoop(func() {
+		arg := <-o.args
+	CALL:
 		if arg != (_StopSignal{}) {
-			v.fun(arg)
+			o.fun(arg)
 		}
 		select {
-		case arg = <-v.args:
-			// when Stop(), continue to handle delivered args,
-			// or client may be blocked at .Apply()
-			goto APPLY
+		case arg = <-o.args:
+			// when .Stop(), continue to handle delivered args,
+			// or client may be blocked at .Call()
+			goto CALL
 		default:
 			// return
 		}
@@ -67,29 +70,32 @@ func NewFunc(argsCap uint, fun func(interface{})) (v *Func) {
 	return
 }
 
-func FuncWrap(fun func(interface{})) (v *Func) {
-	return NewFunc(defaultArgsSize, fun)
+func FuncWrap(fun func(interface{})) (func(interface{}), func()) {
+	v := NewFunc(math.MaxUint16, fun)
+	return v.Call, v.Stop
 }
 
 func (o *Func) Stop() {
-	if o.state == RUNNING {
+	if o.State() != STOPPED {
 		o.Loop.Stop()
 		o.args <- _StopSignal{}
 	}
 }
 
-func (o *Func) Apply(arg interface{}) {
-	if o.state == RUNNING {
-		o.args <- arg
+func (o *Func) Call(arg interface{}) {
+	if o.State() == STOPPED {
+		golib.Warn("%v is stopped", o)
+		return
 	}
+	o.args <- arg
 }
 
-func (o *Func) WithSize(argsCap uint) *Func {
-	if argsCap == uint(cap(o.args)) {
-		return o
-	}
-	old := *o
-	*o = *NewFunc(argsCap, o.fun)
-	old.Stop()
-	return o
-}
+//func (o *Func) WithSize(argsCap uint) *Func {
+//	if argsCap == uint(cap(o.args)) {
+//		return o
+//	}
+//	old := *o
+//	*o = *NewFunc(argsCap, o.fun)
+//	old.Stop()
+//	return o
+//}

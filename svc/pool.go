@@ -10,7 +10,6 @@ func (*Pool) Call    (interface{})
 package svc
 
 import (
-	"fmt"
 	"github.com/moxitrel/golib"
 	"math"
 	"sync/atomic"
@@ -18,10 +17,10 @@ import (
 )
 
 const (
-	defaultPoolMin     = 0
-	defaultPoolMax     = math.MaxUint16
-	defaultPoolDelay   = 200 * time.Millisecond
-	defaultPoolTimeout = time.Minute
+	_POOL_MIN     = 0
+	_POOL_MAX     = math.MaxUint16
+	_POOL_DELAY   = 100 * time.Millisecond
+	_POOL_TIMEOUT = time.Minute
 )
 
 // Start [min, max] goroutines of <Pool.fun> to process <Pool.arg>
@@ -53,7 +52,7 @@ type Pool struct {
 
 func NewPool(min, max uint, delay, timeout time.Duration, fun func(interface{})) (v *Pool) {
 	if fun == nil {
-		golib.Panic("^fun shouldn't be nil!\n")
+		golib.Panic("fun == nil, want !nil")
 	}
 
 	v = &Pool{
@@ -71,16 +70,22 @@ func NewPool(min, max uint, delay, timeout time.Duration, fun func(interface{}))
 	return
 }
 
-func PoolWrap(fun func(interface{})) (v *Pool) {
-	return NewPool(defaultPoolMin, defaultPoolMax, defaultPoolDelay, defaultPoolTimeout, fun)
+func PoolWrap(fun func(interface{})) (func(interface{}) /* stop */, func()) {
+	v := NewPool(_POOL_MIN, _POOL_MAX, _POOL_DELAY, _POOL_TIMEOUT, fun)
+	return v.Call,
+		func() {
+			v.WithCount(0, 0)
+			v.WithTime(v.delay, 0)
+		}
 }
 
 // The created coroutine won't quit unless time out. Set min to 0 if want to quit all.
-func (o *Pool) newProcess() bool {
+func (o *Pool) newProcess() {
+	// XXX: o.cur may overflow if parallel call exceed math.MaxInt64
 	if atomic.AddInt64(&o.cur, 1) > int64(o.max) {
 		// no coroutine created, restore the value
 		atomic.AddInt64(&o.cur, -1)
-		return false
+		return
 	}
 
 	var loop *Loop
@@ -98,16 +103,15 @@ func (o *Pool) newProcess() bool {
 					loop.Stop()
 				} else {
 					// coroutine isn't killed, restore the value
+					// XXX: o.cur may > o.max if o.cur increased by newProcess() at the same time
 					atomic.AddInt64(&o.cur, 1)
 				}
 			}
 		}
 	})
-
-	return true
 }
 
-func (o *Pool) Apply(arg interface{}) {
+func (o *Pool) Call(arg interface{}) {
 	if o.cur >= int64(o.max) {
 		// skip creating timer, when busy and no more goroutine can be created
 		o.arg <- arg
@@ -116,13 +120,8 @@ func (o *Pool) Apply(arg interface{}) {
 		case o.arg <- arg:
 		case <-time.After(o.delay):
 			// If <delay> is too small, select may choose this case even <o.arg> isn't blocked.
-			if o.newProcess() {
-				// NOTE: expect the new process has been started between delay when try again
-				o.Apply(arg)
-			} else {
-				// wait if no more goroutine can be created
-				o.arg <- arg
-			}
+			o.newProcess()
+			o.Call(arg)
 		}
 	}
 }
@@ -139,8 +138,7 @@ func (o *Pool) WithTime(delay time.Duration, timeout time.Duration) *Pool {
 // Change how many goroutines the Pool can create, ^min <= count <= ^max.
 func (o *Pool) WithCount(min uint, max uint) *Pool {
 	if min > max {
-		golib.Warn(fmt.Sprintf("min:%v > max:%v !", min, max))
-		min = max
+		golib.Panic("min:%v > max:%v !", min, max)
 	}
 
 	o.min = uint32(min)

@@ -69,15 +69,15 @@ func Test_NestedSelect(t *testing.T) {
 //
 //	delay := time.Millisecond
 //	timeout := time.Second
-//	min := rand.Intn(defaultPoolMax) + defaultPoolMin
-//	if min > defaultPoolMax {
-//		min = defaultPoolMax
+//	min := rand.Intn(_POOL_MAX) + _POOL_MIN
+//	if min > _POOL_MAX {
+//		min = _POOL_MAX
 //	}
 //	f := PoolWrap(func(_ interface{}) {
 //		time.Sleep(time.Second)
 //	}).
 //		WithTime(delay, timeout).
-//		WithCount(uint(min), defaultPoolMax)
+//		WithCount(uint(min), _POOL_MAX)
 //	time.Sleep(time.Millisecond) // wait goroutines to start completely
 //
 //	ngoNewPool := runtime.NumGoroutine()
@@ -85,7 +85,7 @@ func Test_NestedSelect(t *testing.T) {
 //		t.Fatalf("Goroutine.Count: %v, want %v", ngoNewPool, ngoBegin+min)
 //	}
 //
-//	nCall := int(rand.Intn(defaultPoolMax))
+//	nCall := int(rand.Intn(_POOL_MAX))
 //	for i := 0; i < nCall; i++ {
 //		f.Call(nil)
 //	}
@@ -116,16 +116,14 @@ func TestPool_Example(t *testing.T) {
 	delay := 10 * time.Millisecond
 	timeout := (delay + 5*time.Millisecond) * time.Duration(cap(ts))
 
-	f := PoolWrap(func(x interface{}) {
+	f := NewPool(1, _POOL_MAX, delay, timeout, func(x interface{}) {
 		ts = append(ts, time.Now())
 		time.Sleep(timeout)
 	})
-	f.WithTime(delay, timeout)
-	f.WithCount(1, defaultPoolMax)
 	time.Sleep(timeout)
 
 	for i := 0; i < cap(ts); i++ {
-		f.Apply(nil)
+		f.Call(nil)
 	}
 
 	for i := 0; i < len(ts)-1; i++ {

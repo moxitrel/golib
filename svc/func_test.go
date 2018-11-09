@@ -1,6 +1,7 @@
 package svc
 
 import (
+	"math"
 	"math/rand"
 	"sync"
 	"testing"
@@ -26,16 +27,16 @@ func TestFunc_New(t *testing.T) {
 	var x = 0
 	signalBegin := make(chan struct{})
 	signalEnd := make(chan struct{})
-	o := FuncWrap(func(arg interface{}) {
+	o := NewFunc(math.MaxUint16, func(arg interface{}) {
 		signalBegin <- struct{}{}
 		x = arg.(int)
 		signalEnd <- struct{}{}
 	})
 	defer o.Stop()
 
-	o.Apply(1)
-	o.Apply(2)
-	o.Apply(3)
+	o.Call(1)
+	o.Call(2)
+	o.Call(3)
 
 	for _, v := range []int{1, 2, 3} {
 		<-signalBegin
@@ -48,14 +49,14 @@ func TestFunc_New(t *testing.T) {
 
 func TestFunc_CallAfterStop(t *testing.T) {
 	var x = 0
-	o := FuncWrap(func(arg interface{}) {
+	o := NewFunc(math.MaxUint16, func(arg interface{}) {
 		x = arg.(int)
 	})
 	o.Stop()
 	o.Join()
 
 	// no effect after stop
-	o.Apply(1)
+	o.Call(1)
 	if x != 0 {
 		t.Errorf("x = %v, want 0", x)
 	}
@@ -70,14 +71,14 @@ func TestFunc_StopCallRace(t *testing.T) {
 	}
 
 	n := uint64(0)
-	recver := FuncWrap(func(interface{}) {
+	recver := NewFunc(uint(rand.Intn(1<<31)), func(interface{}) {
 		startSignal.Do(func() {
 			startSignal.signal <- struct{}{}
 		})
 		n++
-	}).WithSize(uint(rand.Intn(1 << 31)))
+	})
 	sender := NewLoop(func() {
-		recver.Apply(0)
+		recver.Call(0)
 	})
 
 	<-startSignal.signal

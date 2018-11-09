@@ -20,7 +20,7 @@ func TestDefer(t *testing.T) {
 
 func Test_BytesPool(t *testing.T) {
 	x := BytesPool.Get(uint(rand.Int31()))
-	t.Logf("x.len: %v", len(x))
+	t.Logf("x.poolLen: %v", len(x))
 	t.Logf("x.cap: %v", cap(x))
 	BytesPool.Put(x)
 }
