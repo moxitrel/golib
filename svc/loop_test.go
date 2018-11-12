@@ -2,12 +2,16 @@ package svc
 
 import (
 	"math"
+	"math/rand"
 	"sync"
 	"testing"
 	"time"
+	"unsafe"
 )
 
 func TestLoop_Example(t *testing.T) {
+	t.Logf("Loop.size: %v", unsafe.Sizeof(*NewLoop(func() {})))
+
 	var n uint64 = 0
 	var loopStartSignal = struct {
 		sync.Once
@@ -43,8 +47,10 @@ func TestLoop_DataRace(t *testing.T) {
 	NewLoop(func() {
 		o.State()
 	})
-	NewLoop(func() {
-		o.Stop()
-	})
-	time.Sleep(time.Second)
+	for i := 0; i < rand.Intn(math.MaxUint8); i++ {
+		NewLoop(func() {
+			o.Stop()
+		})
+	}
+	o.Join()
 }

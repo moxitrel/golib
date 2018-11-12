@@ -24,6 +24,13 @@ type Loop struct {
 	wg    sync.WaitGroup
 }
 
+func (o *Loop) getState() uintptr {
+	return atomic.LoadUintptr(&o.state)
+}
+func (o *Loop) setState(state uintptr) {
+	atomic.StoreUintptr(&o.state, state)
+}
+
 // Make a new Loop.
 // thunk: panic if nil.
 func NewLoop(thunk func()) (o *Loop) {
@@ -36,24 +43,26 @@ func NewLoop(thunk func()) (o *Loop) {
 		state: RUNNING,
 		wg:    sync.WaitGroup{},
 	}
+
+	o.wg.Add(1)
 	go func() {
-		o.wg.Add(1)
-		defer o.wg.Done()
-		for atomic.LoadUintptr(&o.state) == RUNNING {
+		for o.getState() == RUNNING {
 			o.thunk()
 		}
+		o.wg.Done()
 	}()
+
 	return
 }
 
 // Get current running state.
 func (o *Loop) State() uintptr {
-	return atomic.LoadUintptr(&o.state)
+	return o.getState()
 }
 
 // Signal to stop running. May not stop immediately.
 func (o *Loop) Stop() {
-	atomic.StoreUintptr(&o.state, STOPPED)
+	o.setState(STOPPED)
 }
 
 // Block the current goroutine until stopped.

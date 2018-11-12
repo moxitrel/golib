@@ -1,7 +1,9 @@
 package svc
 
 import (
+	"math"
 	"math/rand"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -73,7 +75,7 @@ func Test_NestedSelect(t *testing.T) {
 //	if min > _POOL_MAX {
 //		min = _POOL_MAX
 //	}
-//	f := PoolWrap(func(_ interface{}) {
+//	f := PoolWrapper(func(_ interface{}) {
 //		time.Sleep(time.Second)
 //	}).
 //		WithTime(delay, timeout).
@@ -116,14 +118,14 @@ func TestPool_Example(t *testing.T) {
 	delay := 10 * time.Millisecond
 	timeout := (delay + 5*time.Millisecond) * time.Duration(cap(ts))
 
-	f := NewPool(1, _POOL_MAX, delay, timeout, func(x interface{}) {
+	f := NewPool(1, _POOL_MAX, delay, timeout, 0, func(x interface{}) {
 		ts = append(ts, time.Now())
 		time.Sleep(timeout)
 	})
 	time.Sleep(timeout)
 
 	for i := 0; i < cap(ts); i++ {
-		f.GetCall()(nil)
+		f.Submitter()(nil)
 	}
 
 	for i := 0; i < len(ts)-1; i++ {
@@ -132,18 +134,59 @@ func TestPool_Example(t *testing.T) {
 			t.Errorf("%v: dt = %v, want [%v, %v]", i, dt, delay, delay+10*time.Millisecond)
 		}
 	}
-	f.WithCount(0, uint(f.max))
+	f.Stop()
 	for f.cur > 0 {
 		time.Sleep(f.timeout / 2)
 	}
 }
 
-func TestTicker(t *testing.T) {
-	ticker := time.NewTicker(time.Second)
-	for i := 0; i < 3; i++ {
-		t.Logf("%v", <-ticker.C)
-		intvl := time.Duration(rand.Intn(100)) * time.Millisecond
-		t.Logf("%v", intvl)
-		time.Sleep(intvl)
+func TestPool_DataRace(t *testing.T) {
+	rand.Seed(int64(time.Now().Nanosecond()))
+
+	min := rand.Intn(math.MaxInt8)
+	max := min + rand.Intn(math.MaxInt8)
+	delay := time.Duration(int64(_STOP_DELAY) + rand.Int63n(math.MaxInt32))
+	timeout := time.Duration(int64(_STOP_DELAY) + rand.Int63n(math.MaxInt32))
+	t.Logf("min: %v", min)
+	t.Logf("max: %v", max)
+	t.Logf("delay: %v", delay)
+	t.Logf("timeout: %v", timeout)
+
+	nBegin := runtime.NumGoroutine()
+
+	o := NewPool(uint(min), uint(max), time.Duration(delay), time.Duration(timeout), 0, func(interface{}) {})
+	time.Sleep(time.Millisecond)
+	delta := runtime.NumGoroutine() - nBegin
+	if delta != min {
+		t.Errorf("ngo = %v, want %v", delta, min)
 	}
+	t.Logf("ngo.begin:%v = min:%v", delta, min)
+
+	nCall := rand.Intn(math.MaxInt8)
+	for i := 0; i < nCall; i++ {
+		func(call func(interface{})) {
+			NewLoop(func() {
+				call(nil)
+			})
+		}(o.Submitter())
+	}
+	time.Sleep(delay + _STOP_DELAY)
+	delta = runtime.NumGoroutine() - nBegin
+	if delta != min+nCall {
+		t.Errorf("ngo = %v, want %v", delta, min+nCall)
+	}
+	t.Logf("ngo.afterDelay:%v = min:%v + nCall:%v", delta, min, nCall)
+
+	nStop := rand.Intn(math.MaxInt8)
+	for i := 0; i < nStop; i++ {
+		NewLoop(func() {
+			o.Stop()
+		})
+	}
+	time.Sleep(timeout + _STOP_DELAY)
+	delta = runtime.NumGoroutine() - (nBegin + nCall + nStop)
+	if delta != 0 {
+		t.Errorf("ngo = %v, want %v", delta, 0)
+	}
+	t.Logf("ngo.stop: %v", delta)
 }

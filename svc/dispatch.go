@@ -61,28 +61,34 @@ func (o MyHandlerService) Call(arg T) {
 */
 // Process arg by handlers[arg.key()] in goroutine pool
 type Dispatch struct {
-	*Func
+	applyCall func(interface{})
+	applyStop func()
 	*Pool
 	handlers *sync.Map
+	state int
 }
 
 func NewDispatch(bufferSize uint, poolMin uint) (v *Dispatch) {
 	v = new(Dispatch)
+	v.state = RUNNING
 	v.handlers = new(sync.Map)
-	v.Pool = NewPool(poolMin, _POOL_MAX, _POOL_DELAY, _POOL_TIMEOUT, func(anyFunArg interface{}) {
+	v.Pool = NewPool(poolMin, _POOL_MAX, _POOL_DELAY, _POOL_TIMEOUT, 0, func(anyFunArg interface{}) {
 		funArg := anyFunArg.([2]interface{})
 		fun := funArg[0].(func(interface{}))
 		arg := funArg[1]
 		fun(arg)
 	})
-	v.Func = NewFunc(bufferSize, v.Pool.GetCall())
+	apply := NewPool(1,1,-1,-1, bufferSize, v.Pool.Submitter())
+	v.applyCall = apply.Submitter()
+	v.applyStop = apply.Stop
+
 	return
 }
 
 func (o *Dispatch) Stop() {
 	if o.state == RUNNING {
-		o.Func.Stop()
-		o.Pool.WithTime(o.Pool.delay, 0)
+		o.applyStop()
+		o.Pool.Stop()
 	}
 }
 
@@ -119,5 +125,5 @@ func (o *Dispatch) Apply(key interface{}, arg interface{}) {
 		golib.Warn("%#v, handler doesn't exist!", key)
 		return
 	}
-	o.Func.Call([2]interface{}{fun, arg})
+	o.applyCall([2]interface{}{fun, arg})
 }
