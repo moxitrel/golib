@@ -14,32 +14,29 @@ func NewMapDispatch() *MapDispatch {
 	}
 }
 
-func (o *MapDispatch) Add(key interface{}, handler func(interface{})) {
-	if handler == nil {
-		return
-	}
-	handlers, _ := o.Load(key)
-	if handlers == nil {
-		o.Store(key, []func(interface{}){handler})
-	} else {
-		o.Store(key, append(handlers.([]func(interface{})), handler))
+func (o *MapDispatch) Set(key interface{}, handler func(interface{})) {
+	switch handler {
+	case nil:
+		o.Delete(key)
+	default:
+		o.Store(key, handler)
 	}
 }
 
-func (o *MapDispatch) Set(key interface{}, handler func(interface{})) {
-	if handler == nil {
-		o.Delete(key)
-	} else {
-		o.Store(key, []func(interface{}){handler})
+func (o *MapDispatch) Get(key interface{}) (v func(interface{})) {
+	handler, _ := o.Load(key)
+	if handler != nil {
+		v = handler.(func(interface{}))
 	}
+	return
 }
 
 func (o *MapDispatch) Call(key interface{}, arg interface{}) {
-	handlers, _ := o.Load(key)
-	if handlers == nil {
-		return
-	}
-	for _, handler := range handlers.([]func(interface{})) {
-		handler(arg)
+	handler, _ := o.Load(key)
+	switch handler {
+	case nil:
+		Warn("%#v, handler doesn't exist!", key)
+	default:
+		handler.(func(interface{}))(arg)
 	}
 }
