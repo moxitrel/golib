@@ -2,7 +2,6 @@ package svc
 
 import (
 	"math"
-	"math/rand"
 	"sync"
 	"testing"
 	"time"
@@ -44,12 +43,15 @@ func TestLoop_Example(t *testing.T) {
 
 func TestLoop_DataRace(t *testing.T) {
 	o := NewLoop(func() {})
-	NewLoop(func() {
-		o.State()
-	})
-	for i := 0; i < rand.Intn(math.MaxUint8); i++ {
+	for i := 0; i < 3; i++ {
+		NewLoop(func() {
+			o.State()
+		})
 		NewLoop(func() {
 			o.Stop()
+		})
+		NewLoop(func() {
+			o.Join()
 		})
 	}
 	o.Join()

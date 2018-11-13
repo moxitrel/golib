@@ -8,6 +8,21 @@ import (
 	"time"
 )
 
+func Test_StopSignal(t *testing.T) {
+	type MockStopSignal struct{}
+	mockStopSignal := MockStopSignal{}
+	structStopSignal := struct{}{}
+
+	t.Logf("stopSignal: %#v", stopSignal)
+	t.Logf("mockStopSignal: %#v", mockStopSignal)
+	t.Logf("structStopSignal: %#v", structStopSignal)
+
+	if mockStopSignal == interface{}(stopSignal) ||
+		structStopSignal == interface{}(stopSignal) {
+		t.Errorf("stopSignal isn't unique.")
+	}
+}
+
 func Test_Select(t *testing.T) {
 	t.Skipf("skip test select")
 
@@ -189,4 +204,19 @@ func TestPool_DataRace(t *testing.T) {
 		t.Errorf("ngo = %v, want %v", delta, 0)
 	}
 	t.Logf("ngo.stop: %v", delta)
+}
+
+func TestPool_Join(t *testing.T) {
+	timeout := time.Second + time.Duration(rand.Int31())
+	o := NewPool(uint(rand.Intn(math.MaxInt8)), math.MaxInt8, -1, timeout, 0, func(i interface{}) {})
+	t1 := time.Now()
+	o.Stop()
+	o.Join()
+	t2 := time.Now()
+	t.Logf("t1: %v", t1)
+	t.Logf("timeout: %v", timeout)
+	t.Logf("t2: %v", t2)
+	if t2.Sub(t1.Add(timeout)) > time.Second {
+		t.Errorf("pool should be stop in %v", t2.Add(time.Second).Sub(t1.Add(timeout)))
+	}
 }

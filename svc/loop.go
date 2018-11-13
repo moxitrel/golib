@@ -19,7 +19,7 @@ const (
 
 // Loop running thunk() in a new goroutine.
 type Loop struct {
-	thunk func()
+	//thunk func()
 	state uintptr
 	wg    sync.WaitGroup
 }
@@ -39,7 +39,6 @@ func NewLoop(thunk func()) (o *Loop) {
 	}
 
 	o = &Loop{
-		thunk: thunk,
 		state: RUNNING,
 		wg:    sync.WaitGroup{},
 	}
@@ -47,7 +46,7 @@ func NewLoop(thunk func()) (o *Loop) {
 	o.wg.Add(1)
 	go func() {
 		for o.getState() == RUNNING {
-			o.thunk()
+			thunk()
 		}
 		o.wg.Done()
 	}()

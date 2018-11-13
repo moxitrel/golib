@@ -65,7 +65,7 @@ type Dispatch struct {
 	applyStop func()
 	*Pool
 	handlers *sync.Map
-	state int
+	state    int
 }
 
 func NewDispatch(bufferSize uint, poolMin uint) (v *Dispatch) {
@@ -78,7 +78,7 @@ func NewDispatch(bufferSize uint, poolMin uint) (v *Dispatch) {
 		arg := funArg[1]
 		fun(arg)
 	})
-	apply := NewPool(1,1,-1,-1, bufferSize, v.Pool.Submitter())
+	apply := NewPool(1, 1, -1, -1, bufferSize, v.Pool.Submitter())
 	v.applyCall = apply.Submitter()
 	v.applyStop = apply.Stop
 

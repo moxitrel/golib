@@ -6,8 +6,8 @@ import (
 )
 
 func BenchmarkLoop_AtomicIf(b *testing.B) {
+	thunk := func() {}
 	o := &Loop{
-		thunk: func() {},
 		state: RUNNING,
 	}
 	const PAUSE = RUNNING + 1
@@ -15,18 +15,18 @@ func BenchmarkLoop_AtomicIf(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		state := atomic.LoadUintptr(&o.state)
 		if state == RUNNING {
-			o.thunk()
+			thunk()
 		} else if state == PAUSE {
-			o.thunk()
+			thunk()
 		} else {
-			o.thunk()
+			thunk()
 		}
 	}
 }
 
 func BenchmarkLoop_AtomicSwitch(b *testing.B) {
+	thunk := func() {}
 	o := &Loop{
-		thunk: func() {},
 		state: RUNNING,
 	}
 	const PAUSE = RUNNING + 1
@@ -34,37 +34,37 @@ func BenchmarkLoop_AtomicSwitch(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		switch atomic.LoadUintptr(&o.state) {
 		case RUNNING:
-			o.thunk()
+			thunk()
 		case PAUSE:
-			o.thunk()
+			thunk()
 		default:
-			o.thunk()
+			thunk()
 		}
 	}
 }
 
 func BenchmarkLoop_Atomic(b *testing.B) {
+	thunk := func() {}
 	o := &Loop{
-		thunk: func() {},
 		state: RUNNING,
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		if atomic.LoadUintptr(&o.state) == RUNNING {
-			o.thunk()
+			thunk()
 		}
 	}
 }
 
 func BenchmarkLoop_Raw(b *testing.B) {
+	thunk := func() {}
 	o := &Loop{
-		thunk: func() {},
 		state: RUNNING,
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		if o.state == RUNNING {
-			o.thunk()
+			thunk()
 		}
 	}
 }

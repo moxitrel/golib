@@ -21,7 +21,7 @@ type Timer struct {
 	*time.Timer
 }
 
-func MakeTimer() (o Timer) {
+func NewTimer() (o Timer) {
 	o = Timer{
 		Timer: time.NewTimer(-1),
 	}
@@ -83,6 +83,9 @@ type Pool struct {
 	wg sync.WaitGroup
 }
 
+func (o *Pool) getCur() int64 {
+	return atomic.LoadInt64(&o.cur)
+}
 func (o *Pool) getMin() int64 {
 	return int64(atomic.LoadUint32(&o.min))
 }
@@ -127,6 +130,8 @@ func NewPool(min, max uint, delay, timeout time.Duration, bufferSize uint, fun f
 		curLock: &sync.Mutex{},
 		wg:      sync.WaitGroup{},
 	}
+
+	// if timeout is 0, new process will exit immediately which decrease the cur.
 	for i := uint32(0); i < o.min; i++ {
 		o.newProcess()
 	}
@@ -143,25 +148,26 @@ func (o *Pool) newProcess() {
 	// NOTE: Additionally use atomic operator for o.cur to avoid data race from .Submitter() which has no lock.
 	//       Only lock o.cur when updating.
 	o.curLock.Lock()
-	if atomic.LoadInt64(&o.cur) >= o.getMax() {
+	if o.getCur() >= o.getMax() {
 		o.curLock.Unlock()
 		return
 	}
 	atomic.AddInt64(&o.cur, 1)
 	o.curLock.Unlock()
 
-	timeoutTimer := MakeTimer()
+	timeoutTimer := NewTimer()
 	o.wg.Add(1)
 	go func() {
 		defer o.wg.Done()
 		var arg interface{}
+		// TODO: handle stopSignal
 		for {
 			select {
 			case arg = <-o.arg: // skip creating timer if not blocked
 				o.fun(arg)
 			default:
 				switch timeout := o.getTimeout(); {
-				case timeout < 0: // wait forever, skip creating timer
+				case timeout < 0: // wait forever
 					arg = <-o.arg
 					o.fun(arg)
 				default:
@@ -170,10 +176,9 @@ func (o *Pool) newProcess() {
 					case arg = <-o.arg:
 						timeoutTimer.Stop()
 						o.fun(arg)
-					case <-timeoutTimer.C:
-						// quit if idle too long
+					case <-timeoutTimer.C: // quit if idle too long
 						o.curLock.Lock()
-						if atomic.LoadInt64(&o.cur) > o.getMin() {
+						if o.getCur() > o.getMin() {
 							atomic.AddInt64(&o.cur, -1)
 							o.curLock.Unlock()
 							return
@@ -186,6 +191,7 @@ func (o *Pool) newProcess() {
 	}()
 }
 
+// TODO: send stopSignal
 func (o *Pool) Stop() {
 	o.setMin(0)
 	o.setMax(0)
@@ -197,13 +203,13 @@ func (o *Pool) Join() {
 }
 
 func (o *Pool) Submitter() func(interface{}) {
-	delayTimer := MakeTimer()
+	delayTimer := NewTimer()
 	return func(arg interface{}) {
 	RESUBMIT:
 		switch max := o.getMax(); {
 		case max <= 0: // stopped?
 			// return
-		case atomic.LoadInt64(&o.cur) >= max: // wait forever
+		case o.getCur() >= max: // wait forever
 			// NOTE: use atomic instead of lock for o.cur for performance
 			o.arg <- arg
 		default:
@@ -223,7 +229,8 @@ func (o *Pool) Submitter() func(interface{}) {
 					case o.arg <- arg:
 						delayTimer.Stop()
 					case <-delayTimer.C:
-						// If <delay> is too small, select may choose this case even <o.arg> isn't blocked.
+						// NOTE: If <delay> is too small, select may choose this case even <o.arg> isn't blocked,
+						//       which may be caused by gc.  A proper value should be >= 0.1s in my test.
 						o.newProcess()
 						goto RESUBMIT
 					}
@@ -250,7 +257,7 @@ func (o *Pool) SetCount(min uint, max uint) {
 	o.setMin(uint32(min))
 	o.setMax(uint32(max))
 
-	n := atomic.LoadInt64(&o.cur) - o.getMin()
+	n := o.getCur() - o.getMin()
 	for i := int64(0); i < n; i++ {
 		o.newProcess()
 	}

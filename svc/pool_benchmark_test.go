@@ -13,7 +13,7 @@ func BenchmarkChan_SendTimer(b *testing.B) {
 	})
 
 	// init timer
-	delayTimer := MakeTimer()
+	delayTimer := NewTimer()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		delayTimer.Start(_STOP_DELAY)
@@ -52,7 +52,6 @@ func BenchmarkChan_Send(b *testing.B) {
 		c <- nil
 	}
 }
-
 
 func BenchmarkChan_Select1(b *testing.B) {
 	c := make(chan interface{})
@@ -148,7 +147,7 @@ func BenchmarkPoolSubmit_Wait(b *testing.B) {
 		<-o.arg
 	})
 	var arg interface{}
-	delayTimer := MakeTimer()
+	delayTimer := NewTimer()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -183,17 +182,23 @@ func BenchmarkPoolSubmit_Select(b *testing.B) {
 	}
 }
 
-
 func BenchmarkPoolPerf_Pool_0(b *testing.B) {
 	o := NewPool(1, 1, _POOL_DELAY, _POOL_TIMEOUT, 0, func(interface{}) {})
 	call := o.Submitter()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		call(struct{}{})
+		call(nil)
 	}
 }
-func BenchmarkPoolPerf_Raw_0(b *testing.B) {
+func BenchmarkPoolPerf_Func_0(b *testing.B) {
+	o := NewFunc(0, func(interface{}) {})
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		o.Call(nil)
+	}
+}
+func BenchmarkPoolPerf_Loop_0(b *testing.B) {
 	f := func(x interface{}) {}
 	c := make(chan interface{})
 	NewLoop(func() {
@@ -202,7 +207,7 @@ func BenchmarkPoolPerf_Raw_0(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		c <- struct{}{}
+		c <- nil
 	}
 }
 func BenchmarkPoolPerf_Pool_1(b *testing.B) {
@@ -211,10 +216,17 @@ func BenchmarkPoolPerf_Pool_1(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		call(struct{}{})
+		call(nil)
 	}
 }
-func BenchmarkPoolPerf_Raw_1(b *testing.B) {
+func BenchmarkPoolPerf_Func_1(b *testing.B) {
+	o := NewFunc(1, func(interface{}) {})
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		o.Call(nil)
+	}
+}
+func BenchmarkPoolPerf_Loop_1(b *testing.B) {
 	f := func(x interface{}) {}
 	c := make(chan interface{}, 1)
 	NewLoop(func() {
@@ -223,7 +235,7 @@ func BenchmarkPoolPerf_Raw_1(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		c <- struct{}{}
+		c <- nil
 	}
 }
 func BenchmarkPoolPerf_Pool_8(b *testing.B) {
@@ -232,10 +244,17 @@ func BenchmarkPoolPerf_Pool_8(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		call(struct{}{})
+		call(nil)
 	}
 }
-func BenchmarkPoolPerf_Raw_8(b *testing.B) {
+func BenchmarkPoolPerf_Func_8(b *testing.B) {
+	o := NewFunc(math.MaxUint8, func(interface{}) {})
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		o.Call(nil)
+	}
+}
+func BenchmarkPoolPerf_Loop_8(b *testing.B) {
 	f := func(x interface{}) {}
 	c := make(chan interface{}, math.MaxUint8)
 	NewLoop(func() {
@@ -244,7 +263,7 @@ func BenchmarkPoolPerf_Raw_8(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		c <- struct{}{}
+		c <- nil
 	}
 }
 func BenchmarkPoolPerf_Pool_16(b *testing.B) {
@@ -253,10 +272,17 @@ func BenchmarkPoolPerf_Pool_16(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		call(struct{}{})
+		call(nil)
 	}
 }
-func BenchmarkPoolPerf_Raw_16(b *testing.B) {
+func BenchmarkPoolPerf_Func_16(b *testing.B) {
+	o := NewFunc(math.MaxUint16, func(interface{}) {})
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		o.Call(nil)
+	}
+}
+func BenchmarkPoolPerf_Loop_16(b *testing.B) {
 	f := func(x interface{}) {}
 	c := make(chan interface{}, math.MaxUint16)
 	NewLoop(func() {
@@ -265,6 +291,6 @@ func BenchmarkPoolPerf_Raw_16(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		c <- struct{}{}
+		c <- nil
 	}
 }
