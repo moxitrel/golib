@@ -4,7 +4,7 @@ import (
 	"sync/atomic"
 )
 
-// fixed size, no deletion
+// fixed size, data race exists if not care
 type ArrayDispatch struct {
 	pool    []func(interface{})
 	poolLen uintptr
@@ -32,20 +32,36 @@ func (o *ArrayDispatch) Add(handler func(interface{})) (index uintptr) {
 	return
 }
 
-// Apply the <arg> with the function has the key <index>
-// index: should be the value return from Add(), or panic
-func (o *ArrayDispatch) UnsafeCall(index uintptr, arg interface{}) {
-	o.pool[index](arg)
+// index: it's better to not mixed use with Add(). Use the different index to avoid data race
+func (o *ArrayDispatch) Set(index uintptr, handler func(interface{})) {
+	if index >= uintptr(len(o.pool)) {
+		Panic("index:%v is out of range:%v", index, len(o.pool))
+	}
+	atomic.StoreUintptr(&o.poolLen, index)
+	o.pool[index] = handler
+	return
 }
 
+// Apply the <arg> with the function has the key <index>
+// index: must be the value returned from Add()
 func (o *ArrayDispatch) Call(index uintptr, arg interface{}) {
 	poolLen := atomic.LoadUintptr(&o.poolLen)
 	if index >= poolLen {
 		Panic("index:%v is out of range:%v", index, poolLen)
 	}
-	handler := o.pool[index]
-	if handler == nil {
-		Panic("%v hasn't been registed", index)
+	switch handler := o.pool[index]; handler {
+	case nil:
+		//Panic("%v isn't registered", index)
+	default:
+		handler(arg)
 	}
-	handler(arg)
+}
+
+// index: must be the value returned from Add()
+func (o *ArrayDispatch) Get(index uintptr) func(interface{}) {
+	poolLen := atomic.LoadUintptr(&o.poolLen)
+	if index >= poolLen {
+		Panic("index:%v is out of range:%v", index, poolLen)
+	}
+	return o.pool[index]
 }

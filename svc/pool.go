@@ -17,6 +17,7 @@ import (
 	"time"
 )
 
+// Wrap time.Timer
 type Timer struct {
 	*time.Timer
 }
@@ -47,6 +48,7 @@ const (
 	_STOP_DELAY = 100 * time.Millisecond
 )
 
+// Tell goroutine to exit
 type _StopSignal struct{}
 
 var stopSignal = _StopSignal{}
@@ -77,7 +79,7 @@ type Pool struct {
 	fun func(interface{})
 	arg chan interface{}
 
-	// protect cur when update
+	// lock cur when updating
 	curLock sync.Locker
 
 	wg sync.WaitGroup

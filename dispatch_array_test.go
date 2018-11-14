@@ -17,7 +17,7 @@ func TestArrayDispatch_DataRace(t *testing.T) {
 		atomic.StoreUintptr(&last, i)
 	})
 	svc.NewLoop(func() {
-		o.UnsafeCall(atomic.LoadUintptr(&last), nil)
+		o.Call(atomic.LoadUintptr(&last), nil)
 	})
 
 	time.Sleep(time.Second)
