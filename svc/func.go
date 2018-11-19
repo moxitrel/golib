@@ -29,48 +29,47 @@ package svc
 import (
 	"github.com/moxitrel/golib"
 	"math"
-	"sync"
-	"sync/atomic"
 )
 
 // Loop running fun(arg) in a new goroutine.
 type Func struct {
-	*Loop
+	Loop
 	//fun  func(interface{})
 	args chan interface{} // argument buffer
-}
-
-func (o *Func) getState() uintptr {
-	return atomic.LoadUintptr(&o.state)
-}
-func (o *Func) setState(state uintptr) {
-	atomic.StoreUintptr(&o.state, state)
 }
 
 // Make a new Func service.
 // argsCap: the max number of argument can be buffered.
 // fun: panic if nil.
-func NewFunc(argsCap uint, fun func(interface{})) (o Func) {
+func NewFunc(argsCap uint, fun func(interface{})) (o *Func) {
 	if fun == nil {
 		golib.Panic("fun == nil, want !nil")
 	}
 
-	o = Func{
-		Loop: &Loop{
-			state: RUNNING,
-			wg:    sync.WaitGroup{},
-		},
+	o = &Func{
 		args: make(chan interface{}, argsCap),
 	}
-	o.wg.Add(1)
-	go func() {
-		defer o.wg.Done()
+	o.Loop = *NewHookedLoop(nil, func() {
+		for {
+			switch arg := <-o.args; arg {
+			case stopSignal:
+				o.Loop.Stop()
+				return
+			default:
+				fun(arg)
+			}
+		}
+	}, func() {
 		stopTimer := NewTimer()
 		for {
-			switch o.getState() {
-			case STOPPED:
-				// when .Stop(), continue to handle delivered args,
-				// or client may be blocked at .Call()
+			// when .Stop(), continue to handle delivered args,
+			// or client may be blocked at .Call()
+			select {
+			case arg := <-o.args:
+				if arg != stopSignal {
+					fun(arg)
+				}
+			default:
 				stopTimer.Start(_STOP_DELAY)
 				select {
 				case arg := <-o.args:
@@ -81,16 +80,9 @@ func NewFunc(argsCap uint, fun func(interface{})) (o Func) {
 				case <-stopTimer.C:
 					return
 				}
-			default:
-				switch arg := <-o.args; arg {
-				case stopSignal:
-					o.setState(STOPPED)
-				default:
-					fun(arg)
-				}
 			}
 		}
-	}()
+	})
 	return
 }
 

@@ -2,6 +2,7 @@ package svc
 
 import (
 	"math"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -62,11 +63,12 @@ func BenchmarkChan_Select1(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		select {
-		case c <- nil:
+		case c <- struct{}{}:
+		default:
+			c <- struct{}{}
 		}
 	}
 }
-
 func BenchmarkChan_Select2(b *testing.B) {
 	c := make(chan interface{})
 	c2 := make(chan interface{})
@@ -77,12 +79,11 @@ func BenchmarkChan_Select2(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		select {
-		case c <- nil:
-		case c2 <- nil:
+		case c <- struct{}{}:
+		case c2 <- struct{}{}:
 		}
 	}
 }
-
 func BenchmarkChan_Select3(b *testing.B) {
 	c := make(chan interface{})
 	c2 := make(chan interface{})
@@ -94,13 +95,12 @@ func BenchmarkChan_Select3(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		select {
-		case c <- nil:
-		case c2 <- nil:
-		case c3 <- nil:
+		case c <- struct{}{}:
+		case c2 <- struct{}{}:
+		case c3 <- struct{}{}:
 		}
 	}
 }
-
 func BenchmarkChan_Select4(b *testing.B) {
 	c := make(chan interface{})
 	c2 := make(chan interface{})
@@ -113,11 +113,165 @@ func BenchmarkChan_Select4(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		select {
-		case c <- nil:
-		case c2 <- nil:
-		case c3 <- nil:
-		case c4 <- nil:
+		case c <- struct{}{}:
+		case c2 <- struct{}{}:
+		case c3 <- struct{}{}:
+		case c4 <- struct{}{}:
 		}
+	}
+}
+func BenchmarkChan_SelectRecv127(b *testing.B) {
+	c := make(chan interface{})
+	NewLoop(func() {
+		c <- nil
+	})
+	xs := make([]reflect.SelectCase, math.MaxInt8)
+	for i, _ := range xs {
+		xs[i] = reflect.SelectCase{
+			Dir:  reflect.SelectRecv,
+			Chan: reflect.ValueOf(make(chan interface{})),
+		}
+	}
+	xs[len(xs)-1] = reflect.SelectCase{
+		Dir:  reflect.SelectRecv,
+		Chan: reflect.ValueOf(c),
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		reflect.Select(xs)
+	}
+}
+func BenchmarkChan_SelectRecv255(b *testing.B) {
+	c := make(chan interface{})
+	NewLoop(func() {
+		c <- nil
+	})
+	xs := make([]reflect.SelectCase, math.MaxUint8)
+	for i, _ := range xs {
+		xs[i] = reflect.SelectCase{
+			Dir:  reflect.SelectRecv,
+			Chan: reflect.ValueOf(make(chan interface{})),
+		}
+	}
+	xs[len(xs)-1] = reflect.SelectCase{
+		Dir:  reflect.SelectRecv,
+		Chan: reflect.ValueOf(c),
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		reflect.Select(xs)
+	}
+}
+func BenchmarkChan_SelectRecv1000(b *testing.B) {
+	c := make(chan interface{})
+	NewLoop(func() {
+		c <- nil
+	})
+	xs := make([]reflect.SelectCase, 1000)
+	for i, _ := range xs {
+		xs[i] = reflect.SelectCase{
+			Dir:  reflect.SelectRecv,
+			Chan: reflect.ValueOf(make(chan interface{})),
+		}
+	}
+	xs[len(xs)-1] = reflect.SelectCase{
+		Dir:  reflect.SelectRecv,
+		Chan: reflect.ValueOf(c),
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		reflect.Select(xs)
+	}
+}
+func BenchmarkChan_SelectRecv10000(b *testing.B) {
+	c := make(chan interface{})
+	NewLoop(func() {
+		c <- nil
+	})
+	xs := make([]reflect.SelectCase, 10000)
+	for i, _ := range xs {
+		xs[i] = reflect.SelectCase{
+			Dir:  reflect.SelectRecv,
+			Chan: reflect.ValueOf(make(chan interface{})),
+		}
+	}
+	xs[len(xs)-1] = reflect.SelectCase{
+		Dir:  reflect.SelectRecv,
+		Chan: reflect.ValueOf(c),
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		reflect.Select(xs)
+	}
+}
+func BenchmarkChan_SelectRecv32768(b *testing.B) {
+	c := make(chan interface{})
+	NewLoop(func() {
+		c <- nil
+	})
+	xs := make([]reflect.SelectCase, math.MaxInt16)
+	for i, _ := range xs {
+		xs[i] = reflect.SelectCase{
+			Dir:  reflect.SelectRecv,
+			Chan: reflect.ValueOf(make(chan interface{})),
+		}
+	}
+	xs[len(xs)-1] = reflect.SelectCase{
+		Dir:  reflect.SelectRecv,
+		Chan: reflect.ValueOf(c),
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		reflect.Select(xs)
+	}
+}
+func BenchmarkChan_SelectRecv65535(b *testing.B) {
+	c := make(chan interface{})
+	NewLoop(func() {
+		c <- nil
+	})
+	xs := make([]reflect.SelectCase, math.MaxUint16)
+	for i, _ := range xs {
+		xs[i] = reflect.SelectCase{
+			Dir:  reflect.SelectRecv,
+			Chan: reflect.ValueOf(make(chan interface{})),
+		}
+	}
+	xs[len(xs)-1] = reflect.SelectCase{
+		Dir:  reflect.SelectRecv,
+		Chan: reflect.ValueOf(c),
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		reflect.Select(xs)
+	}
+}
+func BenchmarkChan_SelectRecv65535_0(b *testing.B) {
+	c := make(chan interface{})
+	NewLoop(func() {
+		c <- nil
+	})
+	xs := make([]reflect.SelectCase, math.MaxUint16)
+	for i, _ := range xs {
+		xs[i] = reflect.SelectCase{
+			Dir:  reflect.SelectRecv,
+			Chan: reflect.Zero(reflect.TypeOf(make(chan interface{}))),
+		}
+	}
+	xs[len(xs)-1] = reflect.SelectCase{
+		Dir:  reflect.SelectRecv,
+		Chan: reflect.ValueOf(c),
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		reflect.Select(xs)
 	}
 }
 

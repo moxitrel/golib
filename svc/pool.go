@@ -41,11 +41,11 @@ func (o Timer) Stop() {
 const (
 	_POOL_MIN     = 0
 	_POOL_MAX     = math.MaxUint16
-	_POOL_DELAY   = 100 * time.Millisecond
+	_POOL_DELAY   = 200 * time.Millisecond
 	_POOL_TIMEOUT = time.Minute
 
 	// time to wait for receiving sent args when receive stop signal
-	_STOP_DELAY = 100 * time.Millisecond
+	_STOP_DELAY = 200 * time.Millisecond
 )
 
 // Tell goroutine to exit
@@ -64,7 +64,7 @@ var stopSignal = _StopSignal{}
 //
 type Pool struct {
 	// the current number of goroutines
-	// put in head to make <cur> 64-bit aligned
+	// NOTE: put in head to make <cur> 64-bit aligned
 	cur int64
 	// at least <min> goroutines will be created and live all the time
 	min uint32
@@ -145,10 +145,16 @@ func PoolWrapper(fun func(interface{})) (func() func(interface{}), func()) {
 	return v.Submitter, v.Stop
 }
 
-// The created goroutine won't quit unless time out.
+// Create a new goroutine.
 func (o *Pool) newProcess() {
 	// NOTE: Additionally use atomic operator for o.cur to avoid data race from .Submitter() which has no lock.
 	//       Only lock o.cur when updating.
+	//
+	// XXX: It's not reliable in theory, but ok in practice.
+	//if atomic.AddInt64(&o.cur, 1) > o.getMax() {
+	//	atomic.AddInt64(&o.cur, -1)	// no goroutine created
+	//	return
+	//}
 	o.curLock.Lock()
 	if o.getCur() >= o.getMax() {
 		o.curLock.Unlock()
@@ -162,23 +168,22 @@ func (o *Pool) newProcess() {
 	go func() {
 		defer o.wg.Done()
 		var arg interface{}
-		// TODO: handle stopSignal
 		for {
 			select {
 			case arg = <-o.arg: // skip creating timer if not blocked
-				o.fun(arg)
+				goto HANDLE_ARG
 			default:
 				switch timeout := o.getTimeout(); {
-				case timeout < 0: // wait forever
+				case timeout < 0: // skip creating timer if wait forever
 					arg = <-o.arg
-					o.fun(arg)
+					goto HANDLE_ARG
 				default:
 					timeoutTimer.Start(timeout)
 					select {
 					case arg = <-o.arg:
 						timeoutTimer.Stop()
-						o.fun(arg)
-					case <-timeoutTimer.C: // quit if idle too long
+						goto HANDLE_ARG
+					case <-timeoutTimer.C: // timeout, idle too long
 						o.curLock.Lock()
 						if o.getCur() > o.getMin() {
 							atomic.AddInt64(&o.cur, -1)
@@ -189,15 +194,30 @@ func (o *Pool) newProcess() {
 					}
 				}
 			}
+		HANDLE_ARG:
+			switch arg {
+			case stopSignal: // try to send stop-signal to another goroutine if any alive
+				timeoutTimer.Start(o.getTimeout())
+				select {
+				case o.arg <- stopSignal:
+					timeoutTimer.Stop()
+				case <-timeoutTimer.C:
+				}
+				return
+			default:
+				o.fun(arg)
+			}
 		}
 	}()
 }
 
-// TODO: send stopSignal
 func (o *Pool) Stop() {
-	o.setMin(0)
-	o.setMax(0)
-	o.setTimeout(_STOP_DELAY) // fetch appending args
+	if o.getMax() > 0 {
+		o.setMin(0)
+		o.setMax(0)
+		o.setTimeout(_STOP_DELAY) // fetch appending args
+		o.arg <- stopSignal
+	}
 }
 
 func (o *Pool) Join() {

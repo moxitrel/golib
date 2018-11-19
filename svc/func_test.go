@@ -52,15 +52,17 @@ func TestFunc_Join(t *testing.T) {
 
 func TestFunc_DataRace(t *testing.T) {
 	o := NewFunc(0, func(i interface{}) {})
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 2; i++ {
 		NewLoop(func() {
 			o.Call(nil)
 		})
 		NewLoop(func() {
-			o.Stop()
-		})
-		NewLoop(func() {
 			o.State()
+		})
+	}
+	for i := 0; i < 2; i++ {
+		NewLoop(func() {
+			o.Stop()
 		})
 		NewLoop(func() {
 			o.Join()

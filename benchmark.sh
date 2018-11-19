@@ -34,9 +34,9 @@ cmd=" $cmd -benchmem                                        "   # print memory a
 #cmd=" $cmd -blockprofile            $OUT                    "   # profile goroutine blocking
 #cmd=" $cmd -mutexprofile            $OUT                    "   # profile mutex
 #cmd=" $cmd -trace                   $OUT                    "   # execution trace
-#cmd=" $cmd -memprofilerate          ${MEM_PROFILE_RATE:-1}  "   # collect allocation >= $MEM_PROFILE_RATE,        0: disable , 1: profile all memory allocations
-#cmd=" $cmd -blockprofilerate        $BLOCK_PROFILE_RATE     "   # collect blocking   >= $BLOCK_PROFILE_RATE ns, <=0: turn off, 1: profile all blocking event
-#cmd=" $cmd -mutexprofilefraction    $MUTEX_PROFILE_FRACTION "   # 1/n events are reported,                        0: turn off, 1: profile all blocking event
+cmd=" $cmd -memprofilerate          ${MEM_PROFILE_RATE:-1}      "   # collect allocation >= $MEM_PROFILE_RATE,        0: disable , 1: profile all memory allocations
+cmd=" $cmd -blockprofilerate        ${BLOCK_PROFILE_RATE:-1}    "   # collect blocking   >= $BLOCK_PROFILE_RATE ns, <=0: turn off, 1: profile all blocking event
+cmd=" $cmd -mutexprofilefraction    ${MUTEX_PROFILE_FRACTION:-1}"   # 1/n events are reported,                        0: turn off, 1: profile all blocking event
 cmd=" $cmd -outputdir               /tmp                    "   # dir for saving profiling data, default current directory
 cmd=" $cmd -o                       /tmp/benchmark          "   # where to save the compiled binary
 

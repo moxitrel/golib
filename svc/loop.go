@@ -17,18 +17,11 @@ const (
 	RUNNING
 )
 
-// Loop running thunk() in a new goroutine.
+// Loop running do() in a new goroutine.
 type Loop struct {
-	//thunk func()
+	//do    func()
 	state uintptr
 	wg    sync.WaitGroup
-}
-
-func (o *Loop) getState() uintptr {
-	return atomic.LoadUintptr(&o.state)
-}
-func (o *Loop) setState(state uintptr) {
-	atomic.StoreUintptr(&o.state, state)
 }
 
 // Make a new Loop.
@@ -37,7 +30,10 @@ func NewLoop(thunk func()) (o *Loop) {
 	if thunk == nil {
 		golib.Panic("thunk == nil, want !nil")
 	}
+	return NewHookedLoop(nil, thunk, nil)
+}
 
+func NewHookedLoop(pre func(), do func(), post func()) (o *Loop) {
 	o = &Loop{
 		state: RUNNING,
 		wg:    sync.WaitGroup{},
@@ -45,10 +41,18 @@ func NewLoop(thunk func()) (o *Loop) {
 
 	o.wg.Add(1)
 	go func() {
-		for o.getState() == RUNNING {
-			thunk()
+		defer o.wg.Done()
+		if pre != nil {
+			pre()
 		}
-		o.wg.Done()
+		if do != nil {
+			for o.State() == RUNNING {
+				do()
+			}
+		}
+		if post != nil {
+			post()
+		}
 	}()
 
 	return
@@ -56,12 +60,12 @@ func NewLoop(thunk func()) (o *Loop) {
 
 // Get current running state.
 func (o *Loop) State() uintptr {
-	return o.getState()
+	return atomic.LoadUintptr(&o.state)
 }
 
 // Signal to stop running. May not stop immediately.
 func (o *Loop) Stop() {
-	o.setState(STOPPED)
+	atomic.StoreUintptr(&o.state, STOPPED)
 }
 
 // Block the current goroutine until stopped.
