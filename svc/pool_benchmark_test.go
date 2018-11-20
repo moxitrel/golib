@@ -26,22 +26,6 @@ func BenchmarkChan_SendTimer(b *testing.B) {
 	}
 }
 
-func BenchmarkChan_SendAfter(b *testing.B) {
-	c := make(chan interface{})
-	NewLoop(func() {
-		<-c
-	})
-
-	// init timer
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		select {
-		case c <- nil:
-		case <-time.After(_STOP_DELAY):
-		}
-	}
-}
-
 func BenchmarkChan_Send(b *testing.B) {
 	c := make(chan interface{})
 	NewLoop(func() {
@@ -51,6 +35,13 @@ func BenchmarkChan_Send(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		c <- nil
+	}
+}
+
+func BenchmarkNow(b *testing.B) {
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		time.Now()
 	}
 }
 

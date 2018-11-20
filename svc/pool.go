@@ -163,27 +163,27 @@ func (o *Pool) newProcess() {
 	atomic.AddInt64(&o.cur, 1)
 	o.curLock.Unlock()
 
-	timeoutTimer := NewTimer()
 	o.wg.Add(1)
 	go func() {
 		defer o.wg.Done()
+
+		timeoutTicker := time.NewTicker(o.getTimeout())
+		defer timeoutTicker.Stop()
+
+		const LIFE = 2
+		life := LIFE // exit goroutine when life <= 0
 		var arg interface{}
 		for {
 			select {
 			case arg = <-o.arg: // skip creating timer if not blocked
 				goto HANDLE_ARG
 			default:
-				switch timeout := o.getTimeout(); {
-				case timeout < 0: // skip creating timer if wait forever
-					arg = <-o.arg
+				select {
+				case arg = <-o.arg:
 					goto HANDLE_ARG
-				default:
-					timeoutTimer.Start(timeout)
-					select {
-					case arg = <-o.arg:
-						timeoutTimer.Stop()
-						goto HANDLE_ARG
-					case <-timeoutTimer.C: // timeout, idle too long
+				case <-timeoutTicker.C: // timeout, idle too long
+					life--
+					if life <= 0 {
 						o.curLock.Lock()
 						if o.getCur() > o.getMin() {
 							atomic.AddInt64(&o.cur, -1)
@@ -195,13 +195,16 @@ func (o *Pool) newProcess() {
 				}
 			}
 		HANDLE_ARG:
+			life = LIFE // restore life
 			switch arg {
 			case stopSignal: // try to send stop-signal to another goroutine if any alive
-				timeoutTimer.Start(o.getTimeout())
-				select {
-				case o.arg <- stopSignal:
-					timeoutTimer.Stop()
-				case <-timeoutTimer.C:
+				for life > 0 {
+					select {
+					case o.arg <- stopSignal:
+						life = 0
+					case <-timeoutTicker.C:
+						life--
+					}
 				}
 				return
 			default:

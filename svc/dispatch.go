@@ -9,40 +9,39 @@ package svc
 
 import (
 	"github.com/moxitrel/golib"
-	"reflect"
 	"sync"
 )
 
 // Cache the check result
-var validateMapKeyCache = new(sync.Map)
+//var validateMapKeyCache = new(sync.Map)
 
 // Check whether <keyType> is a valid key type of map
-func ValidateMapKey(keyType reflect.Type) (v bool) {
-	v = true
-
-	if keyType != nil {
-		switch keyType.Kind() {
-		case reflect.Invalid, reflect.Func, reflect.Slice, reflect.Map:
-			// shoudn't be a function, slice or map
-			v = false
-		case reflect.Struct: // shoudn't be a struct contains function, slice or map field
-			// fetch result from cache if exists
-			if anyV, ok := validateMapKeyCache.Load(keyType); ok {
-				v = anyV.(bool)
-			} else {
-				for i := 0; i < keyType.NumField(); i++ {
-					if ValidateMapKey(keyType.Field(i).Type) == false {
-						v = false
-						break
-					}
-				}
-				validateMapKeyCache.Store(keyType, v)
-			}
-		}
-	}
-
-	return
-}
+//func ValidateMapKey(keyType reflect.Type) (v bool) {
+//	v = true
+//
+//	if keyType != nil {
+//		switch keyType.Kind() {
+//		case reflect.Invalid, reflect.Func, reflect.Slice, reflect.Map:
+//			// shoudn't be a function, slice or map
+//			v = false
+//		case reflect.Struct: // shoudn't be a struct contains function, slice or map field
+//			// fetch result from cache if exists
+//			if anyV, ok := validateMapKeyCache.Load(keyType); ok {
+//				v = anyV.(bool)
+//			} else {
+//				for i := 0; i < keyType.NumField(); i++ {
+//					if ValidateMapKey(keyType.Field(i).Type) == false {
+//						v = false
+//						break
+//					}
+//				}
+//				validateMapKeyCache.Store(keyType, v)
+//			}
+//		}
+//	}
+//
+//	return
+//}
 
 /* Usage:
 
@@ -63,7 +62,8 @@ func (o MyHandlerService) Call(arg T) {
 type Dispatch struct {
 	applyCall func(interface{})
 	applyStop func()
-	*Pool
+	Pool
+	Func
 	handlers *sync.Map
 	state    int
 }
@@ -72,7 +72,7 @@ func NewDispatch(bufferSize uint, poolMin uint) (v *Dispatch) {
 	v = new(Dispatch)
 	v.state = RUNNING
 	v.handlers = new(sync.Map)
-	v.Pool = NewPool(poolMin, _POOL_MAX, _POOL_DELAY, _POOL_TIMEOUT, 0, func(anyFunArg interface{}) {
+	v.Pool = *NewPool(poolMin, _POOL_MAX, _POOL_DELAY, _POOL_TIMEOUT, 0, func(anyFunArg interface{}) {
 		funArg := anyFunArg.([2]interface{})
 		fun := funArg[0].(func(interface{}))
 		arg := funArg[1]

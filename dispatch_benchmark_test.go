@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func BenchmarkFunCall_ReflectValue(b *testing.B) {
+func BenchmarkFunCall_Reflect(b *testing.B) {
 	var o = reflect.ValueOf(func(interface{}) {})
 
 	for i := 0; i < b.N; i++ {
@@ -20,14 +20,16 @@ func BenchmarkFunCall_AtomicValue(b *testing.B) {
 	o.Store(func(interface{}) {})
 
 	for i := 0; i < b.N; i++ {
-		o.Load().(func(interface{}))(0)
+		f := o.Load().(func(interface{}))
+		f(0)
 	}
 }
 func BenchmarkFunCall_Interface(b *testing.B) {
 	var o interface{} = func(interface{}) {}
 
 	for i := 0; i < b.N; i++ {
-		o.(func(interface{}))(0)
+		f := o.(func(interface{}))
+		f(0)
 	}
 }
 func BenchmarkFunCall_Direct(b *testing.B) {
@@ -38,7 +40,7 @@ func BenchmarkFunCall_Direct(b *testing.B) {
 	}
 }
 func BenchmarkFunCall_ArrayDispatch(b *testing.B) {
-	o := NewArrayDispatch(uint(1 + rand.Intn(math.MaxInt8)))
+	o := NewArrayDispatch(uintptr(1 + rand.Intn(math.MaxInt8)))
 	n := o.Add(func(i interface{}) {})
 
 	for i := 0; i < b.N; i++ {
@@ -47,7 +49,7 @@ func BenchmarkFunCall_ArrayDispatch(b *testing.B) {
 }
 func BenchmarkFunCall_MapDispatch(b *testing.B) {
 	o := NewMapDispatch()
-	o.Add(0, func(i interface{}) {})
+	o.Set(0, func(i interface{}) {})
 
 	for i := 0; i < b.N; i++ {
 		o.Call(0, 0)

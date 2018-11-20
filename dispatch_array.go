@@ -5,12 +5,13 @@ import (
 )
 
 // fixed size, data race exists if not care
+// Call() with the index returned by Add()
 type ArrayDispatch struct {
 	pool    []func(interface{})
 	poolLen uintptr
 }
 
-func NewArrayDispatch(size uint) *ArrayDispatch {
+func NewArrayDispatch(size uintptr) *ArrayDispatch {
 	return &ArrayDispatch{
 		pool:    make([]func(interface{}), size),
 		poolLen: 0,
@@ -32,7 +33,23 @@ func (o *ArrayDispatch) Add(handler func(interface{})) (index uintptr) {
 	return
 }
 
-// index: it's better to not mixed use with Add(). Use the different index to avoid data race
+// Apply the <arg> with the function has the key <index>
+// index: must be the value returned from Add()
+func (o *ArrayDispatch) Call(index uintptr, arg interface{}) {
+	if index >= uintptr(len(o.pool)) {
+		Panic("index:%v is out of range:%v", index, len(o.pool))
+	}
+	handler := o.pool[index]
+	if handler == nil {
+		//Panic("%v isn't registered", index)
+		return
+	}
+	handler(arg)
+}
+
+// index: start from 0, or Add() + 1
+// e.g. o.Set(0, handler0)
+//      o.Set(1, handler1)
 func (o *ArrayDispatch) Set(index uintptr, handler func(interface{})) {
 	if index >= uintptr(len(o.pool)) {
 		Panic("index:%v is out of range:%v", index, len(o.pool))
@@ -42,26 +59,11 @@ func (o *ArrayDispatch) Set(index uintptr, handler func(interface{})) {
 	return
 }
 
-// Apply the <arg> with the function has the key <index>
 // index: must be the value returned from Add()
-func (o *ArrayDispatch) Call(index uintptr, arg interface{}) {
-	poolLen := atomic.LoadUintptr(&o.poolLen)
-	if index >= poolLen {
-		Panic("index:%v is out of range:%v", index, poolLen)
-	}
-	switch handler := o.pool[index]; handler {
-	case nil:
-		//Panic("%v isn't registered", index)
-	default:
-		handler(arg)
-	}
-}
-
-// index: must be the value returned from Add()
-func (o *ArrayDispatch) Get(index uintptr) func(interface{}) {
-	poolLen := atomic.LoadUintptr(&o.poolLen)
-	if index >= poolLen {
-		Panic("index:%v is out of range:%v", index, poolLen)
-	}
-	return o.pool[index]
-}
+//func (o *ArrayDispatch) Get(index uintptr) func(interface{}) {
+//	poolLen := atomic.LoadUintptr(&o.poolLen)
+//	if index >= poolLen {
+//		Panic("index:%v is out of range:%v", index, poolLen)
+//	}
+//	return o.pool[index]
+//}

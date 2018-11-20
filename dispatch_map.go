@@ -6,28 +6,12 @@ import (
 
 type MapDispatch struct {
 	sync.Map
-	sync.Mutex
 }
 
 func NewMapDispatch() *MapDispatch {
 	return &MapDispatch{
-		Map:   sync.Map{},
-		Mutex: sync.Mutex{},
+		Map: sync.Map{},
 	}
-}
-
-// Panic if key is added.
-func (o *MapDispatch) Add(key interface{}, handler func(interface{})) {
-	if handler == nil {
-		Panic("handler == nil, want !nil")
-	}
-
-	o.Lock()
-	if _, ok := o.Load(key); ok {
-		Panic("key:%v has been registered.", key)
-	}
-	o.Store(key, handler)
-	o.Unlock()
 }
 
 func (o *MapDispatch) Set(key interface{}, handler func(interface{})) {
