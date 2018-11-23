@@ -73,7 +73,7 @@ func NewDispatch(bufferSize uint, poolMax uint) (o Dispatch) {
 		golib.Panic("poolMax == 0, want > 0")
 	}
 	o.MapDispatch = golib.NewMapDispatch()
-	o.Pool = NewPool(1, poolMax, 0, _POOL_TICKER_INTVL, 0, func(arg interface{}) {
+	o.Pool = NewPool(1, poolMax, _POOL_WORKER_DELAY, _POOL_WORKER_TIMEOUT, 0, func(arg interface{}) {
 		msg := arg.(DispatchMsg)
 		fun := o.MapDispatch.Get(msg.DispatchKey())
 		if fun == nil {

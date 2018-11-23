@@ -30,7 +30,7 @@ cmd=" $cmd -benchmem                                        "   # print memory a
 
 # Enable more than one -xxxprofile may skew each other
 #cmd=" $cmd -cpuprofile              cpu.prof                "   # profile cpu
-cmd=" $cmd -memprofile              mem.prof                 "   # profile memory
+#cmd=" $cmd -memprofile              mem.prof                 "   # profile memory
 #cmd=" $cmd -blockprofile            ${OUT:-block.prof}       "   # profile goroutine blocking
 #cmd=" $cmd -mutexprofile            $OUT                    "   # profile mutex
 #cmd=" $cmd -trace                   $OUT                    "   # execution trace

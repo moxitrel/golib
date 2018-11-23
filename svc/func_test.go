@@ -7,6 +7,21 @@ import (
 	"time"
 )
 
+func TestFunc_StopSignal(t *testing.T) {
+	type MockStopSignal struct{}
+	mockStopSignal := MockStopSignal{}
+	structStopSignal := struct{}{}
+
+	t.Logf("stopSignal: %#v", stopSignal)
+	t.Logf("mockStopSignal: %#v", mockStopSignal)
+	t.Logf("structStopSignal: %#v", structStopSignal)
+
+	if mockStopSignal == interface{}(stopSignal) ||
+		structStopSignal == interface{}(stopSignal) {
+		t.Errorf("stopSignal isn't unique.")
+	}
+}
+
 func TestFunc_New(t *testing.T) {
 	var x = 0
 	signalBegin := make(chan struct{})
