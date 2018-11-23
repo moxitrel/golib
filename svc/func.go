@@ -33,53 +33,53 @@ import (
 
 // Loop running fun(arg) in a new goroutine.
 type Func struct {
-	Loop
-	//fun  func(interface{})
+	*Loop
 	args chan interface{} // argument buffer
 }
+
+type _StopSignal struct{}
+
+var stopSignal = _StopSignal{}
 
 // Make a new Func service.
 // argsCap: the max number of argument can be buffered.
 // fun: panic if nil.
-func NewFunc(argsCap uint, fun func(interface{})) (o *Func) {
+func NewFunc(argsCap uint, fun func(interface{})) (o Func) {
 	if fun == nil {
 		golib.Panic("fun == nil, want !nil")
 	}
 
-	o = &Func{
+	o = Func{
 		args: make(chan interface{}, argsCap),
 	}
-	o.Loop = *NewHookedLoop(nil, func() {
-		for {
-			switch arg := <-o.args; arg {
+	o.Loop = NewLoop(func() {
+		for arg := range o.args {
+			switch arg {
 			case stopSignal:
 				o.Loop.Stop()
-				return
-			default:
-				fun(arg)
-			}
-		}
-	}, func() {
-		stopTimer := NewTimer()
-		for {
-			// when .Stop(), continue to handle delivered args,
-			// or client may be blocked at .Call()
-			select {
-			case arg := <-o.args:
-				if arg != stopSignal {
-					fun(arg)
-				}
-			default:
-				stopTimer.Start(_STOP_DELAY)
-				select {
-				case arg := <-o.args:
-					stopTimer.Stop()
+				stopTimer := NewTimer()
+				for {
+					// when .Stop(), continue to handle delivered args,
+					// or client may be blocked at .Call()
 					if arg != stopSignal {
 						fun(arg)
 					}
-				case <-stopTimer.C:
-					return
+					select {
+					case arg = <-o.args:
+						// handle arg
+					default:
+						stopTimer.Start(_STOP_DELAY)
+						select {
+						case arg = <-o.args:
+							stopTimer.Stop()
+							// handle arg
+						case <-stopTimer.C:
+							return
+						}
+					}
 				}
+			default:
+				fun(arg)
 			}
 		}
 	})

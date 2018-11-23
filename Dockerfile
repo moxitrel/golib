@@ -3,8 +3,6 @@
 # escape=`    # 适合 windows
 
 # INSTRUCTION args: INSTRUCTION 不区分大小写，建议大写. Run in order
-#
-# 继承, 指定Base Image, 必需是第一条指令, 多次FROM生成多个映像
 FROM  golang
 
 

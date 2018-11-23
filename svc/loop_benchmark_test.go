@@ -6,9 +6,8 @@ import (
 )
 
 func BenchmarkLoop_FuncTest(b *testing.B) {
-	o := &Loop{
-		state: RUNNING,
-	}
+	o := &Loop{}
+	o.state = RUNNING
 	State := func() uintptr {
 		return atomic.LoadUintptr(&o.state)
 	}
@@ -20,9 +19,8 @@ func BenchmarkLoop_FuncTest(b *testing.B) {
 	}
 }
 func BenchmarkLoop_AtomicTest(b *testing.B) {
-	o := &Loop{
-		state: RUNNING,
-	}
+	o := &Loop{}
+	o.state = RUNNING
 	do := func() {}
 	for i := 0; i < b.N; i++ {
 		if atomic.LoadUintptr(&o.state) == RUNNING {
@@ -31,9 +29,8 @@ func BenchmarkLoop_AtomicTest(b *testing.B) {
 	}
 }
 func BenchmarkLoop_RawTest(b *testing.B) {
-	o := &Loop{
-		state: RUNNING,
-	}
+	o := &Loop{}
+	o.state = RUNNING
 	do := func() {}
 	for i := 0; i < b.N; i++ {
 		if o.state == RUNNING {

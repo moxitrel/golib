@@ -328,8 +328,8 @@ func BenchmarkPoolSubmit_Select(b *testing.B) {
 }
 
 func BenchmarkPoolPerf_Pool_0(b *testing.B) {
-	o := NewPool(1, 1, _POOL_DELAY, _POOL_TIMEOUT, 0, func(interface{}) {})
-	call := o.Submitter()
+	o := NewPool(1, 1, _POOL_CALL_DELAY, _POOL_TICKER_INTVL, 0, func(interface{}) {})
+	call := o.Call
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -356,8 +356,8 @@ func BenchmarkPoolPerf_Loop_0(b *testing.B) {
 	}
 }
 func BenchmarkPoolPerf_Pool_1(b *testing.B) {
-	o := NewPool(1, 1, _POOL_DELAY, _POOL_TIMEOUT, 1, func(interface{}) {})
-	call := o.Submitter()
+	o := NewPool(1, 1, _POOL_CALL_DELAY, _POOL_TICKER_INTVL, 1, func(interface{}) {})
+	call := o.Call
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -384,8 +384,8 @@ func BenchmarkPoolPerf_Loop_1(b *testing.B) {
 	}
 }
 func BenchmarkPoolPerf_Pool_8(b *testing.B) {
-	o := NewPool(1, 1, _POOL_DELAY, _POOL_TIMEOUT, math.MaxUint8, func(interface{}) {})
-	call := o.Submitter()
+	o := NewPool(1, 1, _POOL_CALL_DELAY, _POOL_TICKER_INTVL, math.MaxUint8, func(interface{}) {})
+	call := o.Call
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -412,8 +412,8 @@ func BenchmarkPoolPerf_Loop_8(b *testing.B) {
 	}
 }
 func BenchmarkPoolPerf_Pool_16(b *testing.B) {
-	o := NewPool(1, 1, _POOL_DELAY, _POOL_TIMEOUT, math.MaxUint16, func(interface{}) {})
-	call := o.Submitter()
+	o := NewPool(1, 1, _POOL_CALL_DELAY, _POOL_TICKER_INTVL, math.MaxUint16, func(interface{}) {})
+	call := o.Call
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

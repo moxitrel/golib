@@ -1,15 +1,19 @@
 package svc
 
 import (
-	"reflect"
 	"testing"
 	"time"
 )
 
+type Msg struct {
+	value int
+}
+var p = new(int)
+func (o Msg) DispatchKey() interface{} {
+	return p
+}
+
 func TestDispatch_Example(t *testing.T) {
-	key := func(arg interface{}) reflect.Type {
-		return reflect.TypeOf(arg)
-	}
 	v := ""
 
 	o := NewDispatch(8, 0)
@@ -17,14 +21,36 @@ func TestDispatch_Example(t *testing.T) {
 		o.Stop()
 		o.Join()
 	}()
-	o.Set(key(""), func(arg interface{}) {
+	o.Set(Msg{34}, func(arg interface{}) {
 		v = arg.(string)
 	})
 
 	arg := "11:56"
-	o.Apply(key(arg), arg)
+	o.Call(Msg{78})
 	time.Sleep(o.delay + 100*time.Millisecond)
 	if v != arg {
 		t.Errorf("v = %v, want %v", v, arg)
+	}
+}
+
+func BenchmarkDispatch_Call(b *testing.B) {
+	o := NewDispatch(0, 1)
+	o.Set(p, func(interface{}) {})
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		o.Call( Msg{1})
+	}
+}
+func BenchmarkDispatch_Chan(b *testing.B) {
+	c1 := make(chan interface{})
+	c2 := make(chan interface{})
+	NewLoop(func() {
+		<-c1
+	})
+	NewLoop(func() {
+		c1 <- (<-c2)
+	})
+	for i := 0; i < b.N; i++ {
+		c2 <- Msg{1}
 	}
 }

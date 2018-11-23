@@ -2,7 +2,9 @@ package svc
 
 import (
 	"math"
+	"math/rand"
 	"testing"
+	"time"
 )
 
 func TestFunc_New(t *testing.T) {
@@ -30,17 +32,18 @@ func TestFunc_New(t *testing.T) {
 }
 
 func TestFunc_CallAfterStop(t *testing.T) {
+	rand.Seed(time.Now().UnixNano())
 	x := 0
-	o := NewFunc(math.MaxUint16, func(arg interface{}) {
+	o := NewFunc(uint(rand.Intn(math.MaxInt16)), func(arg interface{}) {
 		x = arg.(int)
 	})
 	o.Stop()
 	o.Join()
 
 	// no effect after stop
-	o.Call(1)
-	if x != 0 {
-		t.Errorf("x = %v, want 0", x)
+	o.Call(2)
+	if x == 2 {
+		t.Errorf("x == %v, want != 2", x)
 	}
 }
 

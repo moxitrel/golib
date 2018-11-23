@@ -72,41 +72,41 @@ func NewMapOnTime(accuracy time.Duration) (o *MapOnTime) {
 	return
 }
 
-func NewTickerOnTime(accuracy time.Duration) (o *MapOnTime) {
-	if accuracy <= 0 {
-		golib.Panic("accuracy <= 0, want > 0")
-	}
-	o = &MapOnTime{
-		accuracy: accuracy,
-		tasks:    sync.Map{},
-		taskLen:  0,
-	}
-	var ticker *time.Ticker
-	o.Loop = NewHookedLoop(func() {
-		ticker = time.NewTicker(accuracy)
-		now := time.Now()
-		time.Sleep(now.Truncate(accuracy).Add(accuracy).Sub(now) % o.accuracy)
-	}, func() {
-		<-ticker.C
-		o.tasks.Range(func(key, value interface{}) bool {
-			task := value.(*Task)
-			life := atomic.AddInt64(&task.life, -o.accuracy.Nanoseconds())
-			switch {
-			case life > 0:
-				// continue to wait
-			case life >= -o.accuracy.Nanoseconds():
-				task.do()
-			default:
-				o.tasks.Delete(key)
-			}
-			return true
-		})
-	}, func() {
-		ticker.Stop()
-	})
-
-	return
-}
+//func NewTickerOnTime(accuracy time.Duration) (o *MapOnTime) {
+//	if accuracy <= 0 {
+//		golib.Panic("accuracy <= 0, want > 0")
+//	}
+//	o = &MapOnTime{
+//		accuracy: accuracy,
+//		tasks:    sync.Map{},
+//		taskLen:  0,
+//	}
+//	var ticker *time.Ticker
+//	o.Loop = newHookedLoop(func() {
+//		ticker = time.NewTicker(accuracy)
+//		now := time.Now()
+//		time.Sleep(now.Truncate(accuracy).Add(accuracy).Sub(now) % o.accuracy)
+//	}, func() {
+//		<-ticker.C
+//		o.tasks.Range(func(key, value interface{}) bool {
+//			task := value.(*Task)
+//			life := atomic.AddInt64(&task.life, -o.accuracy.Nanoseconds())
+//			switch {
+//			case life > 0:
+//				// continue to wait
+//			case life >= -o.accuracy.Nanoseconds():
+//				task.do()
+//			default:
+//				o.tasks.Delete(key)
+//			}
+//			return true
+//		})
+//	}, func() {
+//		ticker.Stop()
+//	})
+//
+//	return
+//}
 
 func (o *MapOnTime) _addTask(task *Task) {
 	taskLen := atomic.AddUint64(&o.taskLen, 1)

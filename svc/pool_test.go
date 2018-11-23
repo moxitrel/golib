@@ -86,14 +86,14 @@ func TestPool_Example(t *testing.T) {
 	delay := 10 * time.Millisecond
 	timeout := (delay + 5*time.Millisecond) * time.Duration(cap(ts))
 
-	f := NewPool(1, _POOL_MAX, delay, timeout, 0, func(x interface{}) {
+	f := NewPool(1, _POOL_WORKER_MAX, delay, timeout, 0, func(x interface{}) {
 		ts = append(ts, time.Now())
 		time.Sleep(timeout)
 	})
 	time.Sleep(timeout)
 
 	for i := 0; i < cap(ts); i++ {
-		f.Submitter()(nil)
+		f.Call(nil)
 	}
 
 	for i := 0; i < len(ts)-1; i++ {
@@ -104,7 +104,7 @@ func TestPool_Example(t *testing.T) {
 	}
 	f.Stop()
 	for f.cur > 0 {
-		time.Sleep(f.timeout / 2)
+		time.Sleep(timeout / 2)
 	}
 }
 
@@ -136,7 +136,7 @@ func TestPool_DataRace(t *testing.T) {
 			NewLoop(func() {
 				call(nil)
 			})
-		}(o.Submitter())
+		}(o.Call)
 	}
 	time.Sleep(delay + _STOP_DELAY)
 	delta = runtime.NumGoroutine() - nBegin
@@ -160,17 +160,46 @@ func TestPool_DataRace(t *testing.T) {
 }
 
 func TestPool_Join(t *testing.T) {
-	rand.Seed(time.Now().Unix())
-	timeout := time.Second + time.Duration(rand.Int31())
-	o := NewPool(uint(rand.Intn(math.MaxInt8)), math.MaxInt8, -1, timeout, 0, func(i interface{}) {})
+	// goroutine number at start
+	ngo0 := runtime.NumGoroutine()
+
+	// start pool
+	rand.Seed(time.Now().UnixNano())
+	poolMin := rand.Intn(8000)
+	poolTimeout := time.Duration(rand.Int31())
+	if poolTimeout < time.Second {
+		poolTimeout += time.Second
+	}
+	o := NewPool(uint(poolMin), uint(poolMin), _POOL_CALL_DELAY, poolTimeout, 0, func(interface{}) {})
+	t.Logf("ngo: %v", runtime.NumGoroutine()-ngo0)
+
+	// stop pool
 	t1 := time.Now()
 	o.Stop()
 	o.Join()
 	t2 := time.Now()
-	t.Logf("t1: %v", t1)
-	t.Logf("timeout: %v", timeout)
-	t.Logf("t2: %v", t2)
-	if t2.Sub(t1) > timeout+time.Second {
-		t.Errorf("pool should be stop in %v", t2.Add(time.Second).Sub(t1.Add(timeout)))
+	t.Logf("join / timeout : %v / %v", t2.Sub(t1), poolTimeout)
+	time.Sleep(_STOP_DELAY)
+
+	// check
+	if d := runtime.NumGoroutine() - ngo0; d > 0 {
+		t.Errorf("%v goroutines left after .Join(), want 0", d)
+	}
+	if d := t2.Sub(t1); d > poolTimeout+time.Duration(poolMin)*time.Millisecond {
+		t.Errorf("pool should be stop in %v", t2.Add(time.Second).Sub(t1.Add(poolTimeout)))
+	}
+}
+
+func TestPool_Call_NoDelay(t *testing.T) {
+	t.Skipf("need fix: .Call() may start more than 1 worker")
+	// goroutine number at start
+	ngo0 := runtime.NumGoroutine()
+
+	o := NewPool(0, math.MaxUint8, 0, time.Hour, 0, func(interface{}) {})
+	o.Call(nil)
+
+	// check
+	if d := runtime.NumGoroutine() - ngo0; d > 1 {
+		t.Errorf("%v workers started, want 1", d)
 	}
 }
