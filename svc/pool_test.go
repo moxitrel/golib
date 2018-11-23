@@ -1,7 +1,9 @@
 package svc
 
 import (
+	"math"
 	"math/rand"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -64,88 +66,45 @@ func Test_NestedSelect(t *testing.T) {
 	}
 }
 
-//func TestPool_NumGoroutine(t *testing.T) {
-//	ngoBegin := runtime.NumGoroutine()
-//
-//	delay := time.Millisecond
-//	timeout := time.Second
-//	min := rand.Intn(defaultPoolMax) + defaultPoolMin
-//	if min > defaultPoolMax {
-//		min = defaultPoolMax
-//	}
-//	f := PoolWrap(func(_ interface{}) {
-//		time.Sleep(time.Second)
-//	}).
-//		WithTime(delay, timeout).
-//		WithCount(uint(min), defaultPoolMax)
-//	time.Sleep(time.Millisecond) // wait goroutines to start completely
-//
-//	ngoNewPool := runtime.NumGoroutine()
-//	if ngoNewPool != ngoBegin+min {
-//		t.Fatalf("Goroutine.Count: %v, want %v", ngoNewPool, ngoBegin+min)
-//	}
-//
-//	nCall := int(rand.Intn(defaultPoolMax))
-//	for i := 0; i < nCall; i++ {
-//		f.Call(nil)
-//	}
-//	ngoCall := runtime.NumGoroutine()
-//	wantNgo := ngoNewPool
-//	if nCall > ngoNewPool {
-//		wantNgo = nCall
-//	}
-//	if wantNgo > int(f.max) {
-//		wantNgo = int(f.max)
-//	}
-//
-//	if ngoCall != wantNgo {
-//		t.Fatalf("Goroutine.Count: %v, want %v", ngoCall, wantNgo)
-//	}
-//
-//	for f.cur > int32(f.min) {
-//		time.Sleep(f.timeout)
-//	}
-//	ngoTimeout := runtime.NumGoroutine()
-//	if ngoTimeout != ngoNewPool {
-//		t.Fatalf("Goroutine.Count: %v, want %v", ngoTimeout, ngoNewPool)
-//	}
-//}
+func TestPool_Join(t *testing.T) {
+	// goroutine number at start
+	ngo0 := runtime.NumGoroutine()
 
-func TestPool_Example(t *testing.T) {
-	ts := make([]time.Time, 0, 100)
-	delay := 10 * time.Millisecond
-	timeout := (delay + 5*time.Millisecond) * time.Duration(cap(ts))
+	// start pool
+	rand.Seed(time.Now().UnixNano())
+	min := rand.Intn(8000)
+	timeout := time.Second + time.Duration(rand.Int31())
+	o := NewPool(uint(min), uint(min), _POOL_WORKER_DELAY, timeout, 0, func(interface{}) {})
+	t.Logf("ngo: %v", runtime.NumGoroutine()-ngo0)
 
-	f := PoolWrap(func(x interface{}) {
-		ts = append(ts, time.Now())
-		time.Sleep(timeout)
-	})
-	f.WithTime(delay, timeout)
-	f.WithCount(1, defaultPoolMax)
-	time.Sleep(timeout)
+	// stop pool
+	t1 := time.Now()
+	o.Stop()
+	o.Join()
+	t2 := time.Now()
+	t.Logf("join / timeout : %v / %v", t2.Sub(t1), timeout)
+	time.Sleep(_STOP_DELAY)
 
-	for i := 0; i < cap(ts); i++ {
-		f.Apply(nil)
+	// check the number of goroutine
+	if d := runtime.NumGoroutine() - ngo0; d > 0 {
+		t.Errorf("%v goroutines left after .Join(), want 0", d)
 	}
-
-	for i := 0; i < len(ts)-1; i++ {
-		dt := ts[i+1].Sub(ts[i])
-		if dt < delay || dt > delay+100*time.Millisecond {
-			t.Errorf("%v: dt = %v, want [%v, %v]", i, dt, delay, delay+10*time.Millisecond)
-		}
-	}
-	f.WithCount(0, uint(f.max))
-	for f.cur > 0 {
-		time.Sleep(f.timeout / 2)
+	// check the cost time to stop
+	if d := t2.Sub(t1); d > timeout+time.Duration(min)*time.Millisecond {
+		t.Errorf("pool should be stop in %v", t2.Add(time.Second).Sub(t1.Add(timeout)))
 	}
 }
 
-func TestTicker(t *testing.T) {
-	ticker := time.NewTicker(time.Second)
-	for i := 0; i < 3; i++ {
-		t.Logf("%v", <-ticker.C)
-		intvl := time.Duration(rand.Intn(100)) * time.Millisecond
-		t.Logf("%v", intvl)
-		time.Sleep(intvl)
+func TestPool_Call_NoDelay(t *testing.T) {
+	t.Skipf("need fix: .Call() may start more than 1 worker")
+	// goroutine number at start
+	ngo0 := runtime.NumGoroutine()
+
+	o := NewPool(0, math.MaxUint8, 0, time.Hour, 0, func(interface{}) {})
+	o.Call(nil)
+
+	// check
+	if d := runtime.NumGoroutine() - ngo0; d > 1 {
+		t.Errorf("%v workers started, want 1", d)
 	}
 }

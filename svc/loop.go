@@ -10,48 +10,27 @@ import (
 	"sync"
 )
 
-// State
-const (
-	STOPPED = iota
-	RUNNING
-)
-
-// Loop Service: loop running thunk() in a new goroutine.
+// Loop running thunk() in a new goroutine.
 type Loop struct {
-	thunk func()
-	state int
-	wg    *sync.WaitGroup
+	*Svc
+	wg sync.WaitGroup
 }
 
-// Return a new loop service.
+// Make a new Loop.
 // thunk: panic if nil.
-func NewLoop(thunk func()) (v *Loop) {
+func NewLoop(thunk func()) (o *Loop) {
 	if thunk == nil {
-		golib.Panic("^thunk shouldn't be nil!")
+		golib.Panic("thunk == nil, want !nil")
 	}
-
-	v = &Loop{
-		thunk: thunk,
-		state: RUNNING,
-		wg:    new(sync.WaitGroup),
-	}
-	go func() {
-		v.wg.Add(1)
-		defer v.wg.Done()
-		for v.state == RUNNING {
-			v.thunk()
-		}
-	}()
+	o = new(Loop)
+	o.wg.Add(1)
+	o.Svc = NewSvc(nil, thunk, func() {
+		o.wg.Done()
+	})
 	return
 }
 
-// Signal the loop to stop running.
-// May not stop immediately.
-func (o *Loop) Stop() {
-	o.state = STOPPED
-}
-
-// Block the current goroutine until the loop stopped.
+// Block the current goroutine until stopped.
 func (o *Loop) Join() {
 	o.wg.Wait()
 }

@@ -1,152 +1,333 @@
 /*
 
-func         PoolWrap (func (interface{})                        ) *Pool
+func         PoolWrapper (func (interface{})                     ) *Pool
 func (*Pool) WithCount(min   uint         , max     uint         ) *Pool
 func (*Pool) WithTime (delay time.Duration, timeout time.Duration) *Pool
 
-func (*Pool) Call    (interface{})
+func (*Pool) Call     (interface{})
 
 */
 package svc
 
 import (
-	"fmt"
 	"github.com/moxitrel/golib"
 	"math"
+	"sync"
 	"sync/atomic"
 	"time"
 )
 
+// Wrap time.Timer
+type Timer struct {
+	*time.Timer
+}
+
+func NewTimer() (o Timer) {
+	o = Timer{
+		Timer: time.NewTimer(-1),
+	}
+	o.Stop()
+	return
+}
+func (o Timer) Start(timeout time.Duration) {
+	o.Reset(timeout)
+}
+func (o Timer) Stop() {
+	if !o.Timer.Stop() {
+		<-o.C
+	}
+}
+
 const (
-	defaultPoolMin     = 0
-	defaultPoolMax     = math.MaxUint16
-	defaultPoolDelay   = 200 * time.Millisecond
-	defaultPoolTimeout = time.Minute
+	_POOL_WORKER_MIN     = 1
+	_POOL_WORKER_MAX     = math.MaxUint16
+	_POOL_WORKER_DELAY   = 300 * time.Millisecond
+	_POOL_WORKER_TIMEOUT = 45 * time.Second
+
+	// time to wait for receiving sent args when receive stop signal
+	_STOP_DELAY = 200 * time.Millisecond
 )
 
 // Start [min, max] goroutines of <Pool.fun> to process <Pool.arg>
 //
 // * Example
 // f := func(x interface{}) { time.Sleep(time.Second) }
-// p := PoolWrap(f)	    // start 1 goroutines of f
+// p := PoolWrapper(f)	    // start 1 goroutines of f
 // p.Call("1")			// run f("1") in background and return immediately
 // p.Call("2")			// run f("2") in background after block <Pool.delay> ns
 // p.Call("3")			// run f("3") in background after block <Pool.delay> ns
 //
 type Pool struct {
-	// the current number of coroutines
-	// put in head to make <cur> 64-bit aligned
-	cur int64
-	// at least <min> coroutines will be created and live all the time
-	min uint32
-	// the max number of coroutines can be created
-	max uint32
-	// create a new coroutine if <arg> is blocked for <delay> ns
-	// a proper value should be >= 0.1s
+	// at least <min> workers will be created and live all the time
+	min int32
+	// the max number of workers can be created
+	max int32
+	// the current number of workers
+	cur int32
+	// the number of idle workers
+	freeCount int32
+	// create a new worker if <arg> is blocked for <delay> ns, a proper value should be >= 0.1s
 	delay time.Duration
-	// destroy the coroutines which idle for <timeout> ns
-	timeout time.Duration
+	// destroy the workers which idle for <timeout> ns
+	//timeout time.Duration
 
 	fun func(interface{})
 	arg chan interface{}
+
+	// send timeout-signal to worker periodically
+	timeoutTicker *Svc
+	// How many signals to sent out after a tick.
+	// Control how many idle workers to close after a timeout.
+	workerChangeLimit int32
+	// decrease worker's life when tick-signal received, timeout when life <= 0
+	life int32
+	// send timeout-signal to submitter periodically through delayChannel
+	delayTicker *Svc
+
+	// lock cur when updating
+	curLock  sync.Mutex
+	stopOnce sync.Once
+	wg       sync.WaitGroup
 }
 
-func NewPool(min, max uint, delay, timeout time.Duration, fun func(interface{})) (v *Pool) {
+type _TimeoutSignal struct{}
+
+var timeoutSignal _TimeoutSignal
+
+func (o *Pool) getMax() int32 {
+	return atomic.LoadInt32(&o.max)
+}
+func (o *Pool) getCur() int32 {
+	return atomic.LoadInt32(&o.cur)
+}
+func (o *Pool) getDelay() time.Duration {
+	return time.Duration(atomic.LoadInt64((*int64)(&o.delay)))
+}
+func (o *Pool) getLife() int32 {
+	return atomic.LoadInt32(&o.life)
+}
+
+func NewPool(min, max uint, delay, timeout time.Duration, bufferSize uint, fun func(interface{})) (o *Pool) {
+	if min > math.MaxInt32 {
+		golib.Panic("min:%v > math.MaxInt32, want <= math.MaxInt32", min)
+	}
+	if max > math.MaxInt32 {
+		golib.Panic("max:%v > math.MaxInt32, want <= math.MaxInt32", max)
+	}
+	if min > max {
+		golib.Panic("min:%v > max:%v, want min <= max", min, max)
+	}
+	if delay < 0 {
+		golib.Panic("delay:%v <= 0, want > 0", delay)
+	}
+	if timeout <= 0 {
+		golib.Panic("timeout:%v <= 0, want > 0", timeout)
+	}
 	if fun == nil {
-		golib.Panic("^fun shouldn't be nil!\n")
+		golib.Panic("fun == nil, want !nil")
 	}
 
-	v = &Pool{
-		fun:     fun,
-		arg:     make(chan interface{}),
-		min:     uint32(min),
-		cur:     0,
-		max:     uint32(max),
-		delay:   delay,
-		timeout: timeout,
+	o = &Pool{
+		min:       int32(min),
+		max:       int32(max),
+		cur:       0,
+		freeCount: 0,
+		delay:     delay,
+
+		fun: fun,
+		arg: make(chan interface{}, bufferSize),
+
+		timeoutTicker:     nil, // inited below
+		workerChangeLimit: 512, // default number of timeoutSignal to send per tick
+		life:              2,   // default life
+		delayTicker:       nil, // inited below
+
+		curLock:  sync.Mutex{},
+		stopOnce: sync.Once{},
+		wg:       sync.WaitGroup{},
 	}
-	for v.cur < int64(v.min) {
-		v.newProcess()
+	// init timeout-ticker
+	if timeout < math.MaxInt64 {
+		timeoutTicker := time.NewTicker(timeout)
+		o.wg.Add(1)
+		o.timeoutTicker = NewSvc(nil, func() {
+			<-timeoutTicker.C
+			// stop idle workers
+			n := atomic.LoadInt32(&o.freeCount)
+			maxTimeoutSignal := atomic.LoadInt32(&o.workerChangeLimit)
+			if n > maxTimeoutSignal {
+				n = maxTimeoutSignal
+			}
+			for ; n > 0; n-- {
+				select {
+				case o.arg <- timeoutSignal:
+				default:
+					return
+				}
+			}
+		}, func() {
+			o.wg.Done()
+			timeoutTicker.Stop()
+		})
+	}
+
+	// init delay-ticker
+	if delay > 0 {
+		delayTicker := time.NewTicker(delay)
+		o.wg.Add(1)
+		o.delayTicker = NewSvc(nil, func() {
+			<-delayTicker.C
+			jobs := len(o.arg)
+			idleWorkers := atomic.LoadInt32(&o.freeCount)
+			avaliableWorkers := o.getMax() - o.getCur()
+			if n := int32(jobs) - idleWorkers; avaliableWorkers > 0 && n > 0 {
+				// TODO: compute a proper number
+				maxTimeoutSignal := atomic.LoadInt32(&o.workerChangeLimit)
+				if n > maxTimeoutSignal {
+					n = maxTimeoutSignal
+				}
+				for ; n > 0; n-- {
+					o.newProcess()
+				}
+			}
+		}, func() {
+			o.wg.Done()
+			delayTicker.Stop()
+		})
+	}
+
+	// if timeout is too small, new process may exit quicker than creating.
+	for i := o.min; i > 0; i-- {
+		o.newProcess()
 	}
 	return
 }
 
-func PoolWrap(fun func(interface{})) (v *Pool) {
-	return NewPool(defaultPoolMin, defaultPoolMax, defaultPoolDelay, defaultPoolTimeout, fun)
+func PoolWrapper(fun func(interface{})) (func(interface{}), func()) {
+	v := NewPool(_POOL_WORKER_MIN, _POOL_WORKER_MAX, _POOL_WORKER_DELAY, _POOL_WORKER_TIMEOUT, 0, fun)
+	return v.Call, v.Stop
 }
 
-// The created coroutine won't quit unless time out. Set min to 0 if want to quit all.
-func (o *Pool) newProcess() bool {
-	if atomic.AddInt64(&o.cur, 1) > int64(o.max) {
-		// no coroutine created, restore the value
-		atomic.AddInt64(&o.cur, -1)
-		return false
+// Create a new goroutine.
+func (o *Pool) newProcess() {
+	// NOTE: Additionally use atomic operator for o.cur to avoid data race from .Submitter() which has no lock.
+	//       Only lock o.cur when updating.
+	o.curLock.Lock()
+	if o.getCur() >= o.getMax() {
+		o.curLock.Unlock()
+		return
 	}
+	atomic.AddInt32(&o.cur, 1)
+	o.curLock.Unlock()
 
-	var loop *Loop
-	loop = NewLoop(func() {
-		select {
-		case arg := <-o.arg:
-			// the outer select: skip creating timer when busy
-			o.fun(arg)
-		default:
-			select {
-			case arg := <-o.arg:
+	o.wg.Add(1)
+	go func() {
+		defer o.wg.Done()
+		life := o.getLife()
+		for {
+			atomic.AddInt32(&o.freeCount, 1)
+			arg := <-o.arg
+			atomic.AddInt32(&o.freeCount, -1)
+			switch arg {
+			case timeoutSignal:
+				life--
+				if life <= 0 {
+					o.curLock.Lock()
+					switch {
+					case o.getCur() <= atomic.LoadInt32(&o.min): // continue to work
+						o.curLock.Unlock()
+						life = o.getLife()
+					default: // quit
+						atomic.AddInt32(&o.cur, -1)
+						o.curLock.Unlock()
+						return
+					}
+				}
+			default:
+				life = o.getLife()
 				o.fun(arg)
-			case <-time.After(o.timeout): // quit if idle for <timeout> ns
-				if atomic.AddInt64(&o.cur, -1) >= int64(o.min) {
-					loop.Stop()
-				} else {
-					// coroutine isn't killed, restore the value
-					atomic.AddInt64(&o.cur, 1)
+			}
+		}
+	}()
+}
+
+func (o *Pool) Stop() {
+	o.stopOnce.Do(func() {
+		atomic.StoreInt32(&o.min, 0)
+		atomic.StoreInt32(&o.max, 0)
+		atomic.StoreInt32(&o.life, 1) // stop when receive a timeoutSignal
+
+		if o.timeoutTicker != nil {
+			o.timeoutTicker.Stop()
+		}
+		if o.delayTicker != nil {
+			o.delayTicker.Stop()
+		}
+
+		go func() {
+			for o.getCur() > 0 {
+				time.Sleep(_STOP_DELAY)
+				for freeCount := atomic.LoadInt32(&o.freeCount); freeCount > 0; freeCount-- {
+					select {
+					case o.arg <- timeoutSignal:
+					default:
+					}
 				}
 			}
-		}
+		}()
 	})
-
-	return true
 }
 
-func (o *Pool) Apply(arg interface{}) {
-	if o.cur >= int64(o.max) {
-		// skip creating timer, when busy and no more goroutine can be created
+func (o *Pool) Join() {
+	o.wg.Wait()
+}
+
+// FIXME: Call() creates more than 1 worker if delay = 0, add pause after newProcess()
+func (o *Pool) Call(arg interface{}) {
+CALL:
+	switch {
+	case o.getMax() <= 0:
+		// return
+	case o.getDelay() > 0:
 		o.arg <- arg
-	} else {
+	case o.getCur() >= o.getMax():
+		o.arg <- arg
+	default:
 		select {
 		case o.arg <- arg:
-		case <-time.After(o.delay):
-			// If <delay> is too small, select may choose this case even <o.arg> isn't blocked.
-			if o.newProcess() {
-				// NOTE: expect the new process has been started between delay when try again
-				o.Apply(arg)
-			} else {
-				// wait if no more goroutine can be created
-				o.arg <- arg
-			}
+		default:
+			o.newProcess()
+			goto CALL
 		}
 	}
 }
 
-// Set when to create or kill a goroutine.
-// A new goroutine will be created after the argument blocked for ^delay ns.
-// A goroutine will be killed after idle for ^timeout ns
-func (o *Pool) WithTime(delay time.Duration, timeout time.Duration) *Pool {
-	o.delay = delay
-	o.timeout = timeout
-	return o
+func (o *Pool) SetWorkerChangeLimit(max uint) {
+	if max > math.MaxInt32 {
+		golib.Panic("max > math.MaxInt32, want <= math.MaxInt32")
+	}
+	atomic.StoreInt32(&o.workerChangeLimit, int32(max))
 }
 
-// Change how many goroutines the Pool can create, ^min <= count <= ^max.
-func (o *Pool) WithCount(min uint, max uint) *Pool {
-	if min > max {
-		golib.Warn(fmt.Sprintf("min:%v > max:%v !", min, max))
-		min = max
-	}
-
-	o.min = uint32(min)
-	o.max = uint32(max)
-	for o.cur < int64(o.min) {
-		o.newProcess()
-	}
-	return o
-}
+//// Set when to create or kill a goroutine.
+//// A new goroutine will be created after the argument blocked for <delay> ns.
+//// A goroutine will be killed after idle for <timeout> ns
+//func (o *Pool) SetTime(delay time.Duration, timeout time.Duration) {
+//	o.setDelay(delay)
+//	o.setTimeout(timeout)
+//}
+//
+//// Change how many goroutines the Pool can create.
+//func (o *Pool) SetCount(min uint, max uint) {
+//	if min > max {
+//		golib.Panic("min:%v > max:%v, want min <= max", min, max)
+//	}
+//
+//	o.setMin(int32(min))
+//	o.setMax(int32(max))
+//
+//	n := o.getCur() - o.getMin()
+//	for i := int32(0); i < n; i++ {
+//		o.newProcess()
+//	}
+//}

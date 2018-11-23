@@ -1,7 +1,7 @@
 /*
 
 FuncWrap (Any -> ())	: "loop f(arg)"
-	Apply Any : "sched f(arg)"
+	Call Any : "sched f(arg)"
 
 *** e.g.
 
@@ -18,9 +18,9 @@ func NewF() T {
 	})}
 }
 
-// 3. override Apply() with desired type
-func (o *T) Apply(x ArgT) {
-	o.Func.Apply(x)
+// 3. override Call() with desired type
+func (o *T) Call(x ArgT) {
+	o.Func.Call(x)
 }
 
 */
@@ -31,65 +31,74 @@ import (
 	"math"
 )
 
-const defaultArgsSize = math.MaxUint16
-
+// Loop running fun(arg) in a new goroutine.
 type Func struct {
 	*Loop
-	fun  func(interface{})
-	args chan interface{}
+	args chan interface{} // argument buffer
 }
 
 type _StopSignal struct{}
 
-func NewFunc(argsCap uint, fun func(interface{})) (v *Func) {
+var stopSignal = _StopSignal{}
+
+// Make a new Func service.
+// argsCap: the max number of argument can be buffered.
+// fun: panic if nil.
+func NewFunc(argsCap uint, fun func(interface{})) (o Func) {
 	if fun == nil {
-		golib.Panic("^fun shouldn't be nil!\n")
+		golib.Panic("fun == nil, want !nil")
 	}
-	v = &Func{
-		fun:  fun,
+
+	o = Func{
 		args: make(chan interface{}, argsCap),
 	}
-	v.Loop = NewLoop(func() {
-		arg := <-v.args
-	APPLY:
-		if arg != (_StopSignal{}) {
-			v.fun(arg)
-		}
-		select {
-		case arg = <-v.args:
-			// when Stop(), continue to handle delivered args,
-			// or client may be blocked at .Apply()
-			goto APPLY
-		default:
-			// return
+	o.Loop = NewLoop(func() {
+		for arg := range o.args {
+			switch arg {
+			case stopSignal:
+				o.Loop.Stop()
+				stopTimer := NewTimer()
+				for {
+					// when .Stop(), continue to handle delivered args,
+					// or client may be blocked at .Call()
+					if arg != stopSignal {
+						fun(arg)
+					}
+					select {
+					case arg = <-o.args:
+						// handle arg
+					default:
+						stopTimer.Start(_STOP_DELAY)
+						select {
+						case arg = <-o.args:
+							stopTimer.Stop()
+							// handle arg
+						case <-stopTimer.C:
+							return
+						}
+					}
+				}
+			default:
+				fun(arg)
+			}
 		}
 	})
 	return
 }
 
-func FuncWrap(fun func(interface{})) (v *Func) {
-	return NewFunc(defaultArgsSize, fun)
+func FuncWrapper(fun func(interface{})) (func(interface{}), func()) {
+	v := NewFunc(math.MaxUint16, fun)
+	return v.Call, v.Stop
 }
 
 func (o *Func) Stop() {
-	if o.state == RUNNING {
-		o.Loop.Stop()
-		o.args <- _StopSignal{}
+	if o.State() != STOPPED {
+		o.args <- stopSignal
 	}
 }
 
-func (o *Func) Apply(arg interface{}) {
-	if o.state == RUNNING {
+func (o *Func) Call(arg interface{}) {
+	if o.State() != STOPPED {
 		o.args <- arg
 	}
-}
-
-func (o *Func) WithSize(argsCap uint) *Func {
-	if argsCap == uint(cap(o.args)) {
-		return o
-	}
-	old := *o
-	*o = *NewFunc(argsCap, o.fun)
-	old.Stop()
-	return o
 }
