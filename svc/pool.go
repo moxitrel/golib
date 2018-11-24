@@ -222,7 +222,9 @@ func (o *Pool) Stop() {
 			o.delayTicker.Stop()
 		}
 
+		o.wg.Add(1)
 		go func() {
+			defer o.wg.Done()
 			for o.getCur() > 0 {
 				time.Sleep(_STOP_DELAY)
 				for freeCount := o.getFreeCount(); freeCount > 0; freeCount-- {
