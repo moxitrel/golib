@@ -58,7 +58,7 @@ func (o MyHandlerService) Call(arg T) {
 
 */
 type DispatchMsg interface {
-	DispatchKey() interface{}
+	DispatchKey() interface{} // must return a value hashable
 }
 
 // Process arg by handlers[arg.key()] in goroutine pool
@@ -87,9 +87,9 @@ func (o *Dispatch) Set(msg DispatchMsg, fun func(DispatchMsg)) {
 	}
 	switch fun {
 	case nil:
-		o.MapDispatch.Set(msg, nil)
+		o.MapDispatch.Set(msg.DispatchKey(), nil)
 	default:
-		o.MapDispatch.Set(msg, func(arg interface{}) {
+		o.MapDispatch.Set(msg.DispatchKey(), func(arg interface{}) {
 			fun(arg.(DispatchMsg))
 		})
 	}

@@ -12,24 +12,20 @@ func (Msg) DispatchKey() interface{} {
 	return nil
 }
 
-func TestDispatch_Example(t *testing.T) {
-	//v := ""
-	//
-	//o := NewDispatch(8, 1)
-	//defer func() {
-	//	o.Stop()
-	//	o.Join()
-	//}()
-	//o.Set(Msg{34}, func(arg interface{}) {
-	//	v = fmt.Sprintf("%v", arg.(Msg).value)
-	//})
-	//
-	//arg := "11:56"
-	//o.Call(Msg{78})
-	//time.Sleep(o.delay + 100*time.Millisecond)
-	//if v != arg {
-	//	t.Errorf("v = %v, want %v", v, arg)
-	//}
+type SetMsg struct {
+	unhashable []byte
+}
+
+func (o SetMsg) DispatchKey() interface{} {
+	return nil
+}
+func TestDispatch_Set(t *testing.T) {
+	o := NewDispatch(8, 1)
+	defer func() {
+		o.Stop()
+		o.Join()
+	}()
+	o.Set(SetMsg{nil}, func(arg DispatchMsg) {})
 }
 
 func BenchmarkDispatch_Call(b *testing.B) {
