@@ -41,7 +41,7 @@ func (o Timer) Stop() {
 const (
 	_POOL_WORKER_MIN     = 1
 	_POOL_WORKER_MAX     = math.MaxUint16
-	_POOL_WORKER_DELAY   = 300 * time.Millisecond
+	_POOL_WORKER_DELAY   = 250 * time.Millisecond
 	_POOL_WORKER_TIMEOUT = 45 * time.Second
 
 	// time to wait for receiving sent args when receive stop signal

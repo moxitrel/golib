@@ -8,10 +8,8 @@ type Msg struct {
 	value int
 }
 
-var p = new(int)
-
-func (o Msg) DispatchKey() interface{} {
-	return p
+func (Msg) DispatchKey() interface{} {
+	return nil
 }
 
 func TestDispatch_Example(t *testing.T) {
@@ -36,22 +34,18 @@ func TestDispatch_Example(t *testing.T) {
 
 func BenchmarkDispatch_Call(b *testing.B) {
 	o := NewDispatch(0, 1)
-	o.Set(p, func(interface{}) {})
+	o.Set(Msg{}.DispatchKey(), func(DispatchMsg) {})
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		o.Call(Msg{1})
+		o.Call(Msg{})
 	}
 }
 func BenchmarkDispatch_Chan(b *testing.B) {
 	c1 := make(chan interface{})
-	c2 := make(chan interface{})
 	NewLoop(func() {
 		<-c1
 	})
-	NewLoop(func() {
-		c1 <- (<-c2)
-	})
 	for i := 0; i < b.N; i++ {
-		c2 <- Msg{1}
+		c1 <- nil
 	}
 }
