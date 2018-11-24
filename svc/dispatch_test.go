@@ -34,7 +34,7 @@ func TestDispatch_Example(t *testing.T) {
 
 func BenchmarkDispatch_Call(b *testing.B) {
 	o := NewDispatch(0, 1)
-	o.Set(Msg{}.DispatchKey(), func(DispatchMsg) {})
+	o.Set(Msg{}, func(DispatchMsg) {})
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		o.Call(Msg{})
