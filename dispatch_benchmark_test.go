@@ -17,10 +17,11 @@ func BenchmarkFunCall_Reflect(b *testing.B) {
 }
 func BenchmarkFunCall_MapDispatch(b *testing.B) {
 	o := NewMapDispatch()
-	o.Set(0, func(i interface{}) {})
+	key := o.NewKey()
+	o.Set(key, func(interface{}) {})
 
 	for i := 0; i < b.N; i++ {
-		o.Call(0, 0)
+		o.Call(key, 0)
 	}
 }
 func BenchmarkFunCall_Map(b *testing.B) {

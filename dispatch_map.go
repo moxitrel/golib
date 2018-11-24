@@ -2,15 +2,36 @@ package golib
 
 import (
 	"sync"
+	"sync/atomic"
+	"unsafe"
 )
+
+// zero value is not a valid key
+type DispatchKey struct {
+	ptr unsafe.Pointer
+	uintptr
+}
 
 type MapDispatch struct {
 	sync.Map
+	uintptr
 }
 
 func NewMapDispatch() *MapDispatch {
 	return &MapDispatch{
-		Map: sync.Map{},
+		Map:     sync.Map{},
+		uintptr: 0,
+	}
+}
+
+func (o *MapDispatch) NewKey() DispatchKey {
+	index := atomic.AddUintptr(&o.uintptr, 1)
+	if index == 0 {
+		Panic("All key is used.")
+	}
+	return DispatchKey{
+		ptr:     unsafe.Pointer(o),
+		uintptr: index,
 	}
 }
 

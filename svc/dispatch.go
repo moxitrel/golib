@@ -79,16 +79,17 @@ func NewDispatch(bufferSize uint, poolMax uint) (o Dispatch) {
 	return
 }
 
-func (o *Dispatch) Stop() {
-	o.Pool.Stop()
-}
-
 // key: key's type shoudn't be function, slice, map or struct contains function, slice or map field
 // fun: nil, delete the handler according to key
 func (o *Dispatch) Set(key interface{}, fun func(DispatchMsg)) {
-	o.MapDispatch.Set(key, func(arg interface{}) {
-		fun(arg.(DispatchMsg))
-	})
+	switch fun {
+	case nil:
+		o.MapDispatch.Set(key, nil)
+	default:
+		o.MapDispatch.Set(key, func(arg interface{}) {
+			fun(arg.(DispatchMsg))
+		})
+	}
 }
 
 //func (o *Dispatch) Get(key interface{}) func(interface{}) {

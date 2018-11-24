@@ -4,15 +4,14 @@ import (
 	"github.com/moxitrel/golib/svc"
 	"testing"
 	"time"
+	"unsafe"
 )
 
 func TestMapDispatch_DataRace(t *testing.T) {
+	t.Logf("uintptr.size: %v", unsafe.Sizeof(uintptr(0)))
+
 	o := NewMapDispatch()
-	//n := int64(0)
-	for i := 0; i < 3; i++ {
-		//svc.NewLoop(func() {
-		//	o.Add(atomic.AddInt64(&n, 1), func(interface{}) {})
-		//})
+	for i := 0; i < 2; i++ {
 		svc.NewLoop(func() {
 			o.Set(0, func(interface{}) {})
 		})
