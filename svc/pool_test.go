@@ -90,7 +90,7 @@ func TestPool_Join(t *testing.T) {
 		t.Errorf("%v goroutines left after .Join(), want 0", d)
 	}
 	// check the cost time to stop
-	if d := t2.Sub(t1); d > timeout+time.Duration(min)*3*time.Millisecond {
+	if d := t2.Sub(t1); d > timeout+time.Duration(min)*4*time.Millisecond {
 		t.Errorf("pool should be stop in %v", t2.Add(time.Second).Sub(t1.Add(timeout)))
 	}
 }
