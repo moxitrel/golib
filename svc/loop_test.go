@@ -1,21 +1,15 @@
 package svc
 
 import (
-	"math"
 	"testing"
 	"time"
-	"unsafe"
 )
 
 func TestLoop_Example(t *testing.T) {
-
 	var n uint64 = 0
 	o := NewLoop(func() {
-		if n < math.MaxUint64 {
-			n++
-		}
+		n++
 	})
-	t.Logf("sizeof Loop: %v", unsafe.Sizeof(*o))
 	time.Sleep(time.Millisecond)
 	o.Stop()
 	o.Join()

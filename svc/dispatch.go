@@ -65,7 +65,6 @@ type DispatchMsg interface {
 type Dispatch struct {
 	*golib.MapDispatch
 	*Pool
-	Func
 }
 
 func NewDispatch(bufferSize uint, poolMax uint) (o Dispatch) {
@@ -73,30 +72,23 @@ func NewDispatch(bufferSize uint, poolMax uint) (o Dispatch) {
 		golib.Panic("poolMax == 0, want > 0")
 	}
 	o.MapDispatch = golib.NewMapDispatch()
-	o.Pool = NewPool(1, poolMax, _POOL_WORKER_DELAY, _POOL_WORKER_TIMEOUT, 0, func(arg interface{}) {
+	o.Pool = NewPool(_POOL_WORKER_MIN, poolMax, 0, _POOL_WORKER_TIMEOUT, bufferSize, func(arg interface{}) {
 		msg := arg.(DispatchMsg)
-		fun := o.MapDispatch.Get(msg.DispatchKey())
-		if fun == nil {
-			golib.Warn("%#v, handler doesn't exist!", msg)
-			return
-		}
-		fun(msg)
+		o.MapDispatch.Call(msg.DispatchKey(), msg)
 	})
-	o.Func = NewFunc(bufferSize, o.Pool.Call)
 	return
 }
 
 func (o *Dispatch) Stop() {
-	if o.state == RUNNING {
-		o.Pool.Stop()
-		o.Func.Stop()
-	}
+	o.Pool.Stop()
 }
 
 // key: key's type shoudn't be function, slice, map or struct contains function, slice or map field
 // fun: nil, delete the handler according to key
-func (o *Dispatch) Set(key interface{}, fun func(interface{})) {
-	o.MapDispatch.Set(key, fun)
+func (o *Dispatch) Set(key interface{}, fun func(DispatchMsg)) {
+	o.MapDispatch.Set(key, func(arg interface{}) {
+		fun(arg.(DispatchMsg))
+	})
 }
 
 //func (o *Dispatch) Get(key interface{}) func(interface{}) {
@@ -111,5 +103,5 @@ func (o *Dispatch) Call(msg DispatchMsg) {
 	if msg == nil {
 		return
 	}
-	o.Func.Call(msg)
+	o.Pool.Call(msg)
 }
