@@ -30,6 +30,6 @@ import (
 //}
 
 func TestArrayDispatch(t *testing.T) {
-	t.Logf("sizeof ArrayDispatchKey: %v", unsafe.Sizeof(ArrayDispatchKey{}))
+	t.Logf("sizeof ArrayDispatchKey: %v", unsafe.Sizeof(DispatchKey{}))
 	t.Logf("sizeof uintptr: %v", unsafe.Sizeof(uintptr(0)))
 }

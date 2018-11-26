@@ -8,13 +8,13 @@ import (
 
 // zero value is not a valid key
 type DispatchKey struct {
-	ptr unsafe.Pointer
+	dispatcher unsafe.Pointer
 	uintptr
 }
 
 type MapDispatch struct {
 	sync.Map
-	uintptr
+	uintptr // dispatch key
 }
 
 func NewMapDispatch() *MapDispatch {
@@ -30,8 +30,8 @@ func (o *MapDispatch) NewKey() DispatchKey {
 		Panic("All key is used.")
 	}
 	return DispatchKey{
-		ptr:     unsafe.Pointer(o),
-		uintptr: index,
+		dispatcher: unsafe.Pointer(o),
+		uintptr:    index,
 	}
 }
 
@@ -44,20 +44,20 @@ func (o *MapDispatch) Set(key interface{}, handler func(interface{})) {
 	}
 }
 
-func (o *MapDispatch) Call(key interface{}, arg interface{}) {
-	handler, _ := o.Load(key)
-	switch handler {
-	case nil:
-		//Warn("%#v, the handler doesn't exist!", key)
-	default:
-		handler.(func(interface{}))(arg)
-	}
-}
-
 func (o *MapDispatch) Get(key interface{}) (v func(interface{})) {
 	handler, _ := o.Load(key)
 	if handler != nil {
 		v = handler.(func(interface{}))
 	}
 	return
+}
+
+func (o *MapDispatch) Call(key interface{}, arg interface{}) {
+	handler, _ := o.Load(key)
+	switch handler {
+	case nil:
+		//Warn("%#v, handler doesn't exist!", key)
+	default:
+		handler.(func(interface{}))(arg)
+	}
 }
