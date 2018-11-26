@@ -73,7 +73,7 @@ func WithTcp(remoteAddr string, cb func(net.Conn) error) error {
 	return cb(conn)
 }
 
-func WithUdp(localPort uint16, remoteAddr string, cb func(net.PacketConn) error) error {
+func WithUdp(localPort uint16, cb func(net.PacketConn) error) error {
 	if cb == nil {
 		return nil
 	}
