@@ -5,48 +5,46 @@ import (
 	"unsafe"
 )
 
+// zero value is not a valid key
+type DispatchKey struct {
+	dispatcher unsafe.Pointer
+	key        uintptr
+}
+
 // fixed size, add only
 type ArrayDispatch struct {
-	pool []func(interface{})
-	uintptr
+	handers []func(interface{})
+	key     uintptr
 }
 
 func NewArrayDispatch(size uintptr) *ArrayDispatch {
 	return &ArrayDispatch{
-		pool:    make([]func(interface{}), size),
-		uintptr: 0,
+		handers: make([]func(interface{}), size),
+		key:     0,
 	}
 }
 
-func (o *ArrayDispatch) NewKey() DispatchKey {
-	index := atomic.AddUintptr(&o.uintptr, 1)
-	if index >= uintptr(len(o.pool)) {
-		Panic("All key is used.")
+func (o *ArrayDispatch) Add(handler func(interface{})) (dispatchKey DispatchKey) {
+	index := atomic.AddUintptr(&o.key, 1)
+	if index >= uintptr(len(o.handers)) {
+		Panic("No key left.")
 	}
-	return DispatchKey{
+	dispatchKey = DispatchKey{
 		dispatcher: unsafe.Pointer(o),
-		uintptr:    index,
+		key:        index,
 	}
+	o.handers[dispatchKey.key] = handler
+	return
 }
 
-// Add an handler into dispatcher, return the handler's key
-// handler: shouldn't be nil
-func (o *ArrayDispatch) Set(key DispatchKey, handler func(interface{})) {
-	if key == (DispatchKey{}) {
-		Panic("key:%v isn't valid", key)
-	}
-	if handler == nil {
-		Panic("handler == nil, want !nil")
-	}
-	o.pool[key.uintptr] = handler
-}
-
-// Apply the <arg> with the function has the key <index>
-// index: must be the value returned from Add()
 func (o *ArrayDispatch) Call(key DispatchKey, arg interface{}) {
 	if key == (DispatchKey{}) {
 		Panic("key:%v isn't valid", key)
 	}
-	handler := o.pool[key.uintptr]
+	handler := o.handers[key.key]
 	handler(arg)
+}
+
+func (o *ArrayDispatch) Get(key DispatchKey) func(interface{}) {
+	return o.handers[key.key]
 }

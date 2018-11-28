@@ -36,8 +36,7 @@ func BenchmarkFunCall_Map(b *testing.B) {
 }
 func BenchmarkFunCall_ArrayDispatch(b *testing.B) {
 	o := NewArrayDispatch(uintptr(1 + rand.Intn(math.MaxInt8)))
-	n := o.NewKey()
-	o.Set(n, func(i interface{}) {})
+	n := o.Add(func(i interface{}) {})
 
 	for i := 0; i < b.N; i++ {
 		o.Call(n, 0)
