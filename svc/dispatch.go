@@ -95,17 +95,13 @@ func (o *Dispatch) Set(msg DispatchMsg, fun func(DispatchMsg)) {
 	}
 }
 
-//func (o *Dispatch) Get(key interface{}) func(interface{}) {
-//	v, _ := o.handlers.Load(key)
-//	if v == nil {
-//		return nil
-//	}
-//	return v.(func(interface{}))
-//}
-
 func (o *Dispatch) Call(msg DispatchMsg) {
 	if msg == nil {
 		return
 	}
 	o.Pool.Call(msg)
+}
+
+func (o *Dispatch) Get(msg DispatchMsg) func(interface{}) {
+	return o.MapDispatch.Get(msg.DispatchKey())
 }

@@ -2,68 +2,49 @@ package golib
 
 import (
 	"sync/atomic"
+	"unsafe"
 )
 
 // zero value is not a valid key
-type ArrayDispatchKey struct {
-	uintptr
+type DispatchKey struct {
+	dispatcher unsafe.Pointer
+	key        uintptr
 }
 
 // fixed size, add only
 type ArrayDispatch struct {
-	pool    []func(interface{})
-	poolLen uintptr
+	handers []func(interface{})
+	key     uintptr
 }
 
 func NewArrayDispatch(size uintptr) *ArrayDispatch {
 	return &ArrayDispatch{
-		pool:    make([]func(interface{}), size),
-		poolLen: 0,
+		handers: make([]func(interface{}), size),
+		key:     0,
 	}
 }
 
-// Add an handler into dispatcher, return the handler's key
-// handler: shouldn't be nil
-func (o *ArrayDispatch) Add(handler func(interface{})) ArrayDispatchKey {
-	if handler == nil {
-		Panic("handler == nil, want !nil")
+func (o *ArrayDispatch) Add(handler func(interface{})) (dispatchKey DispatchKey) {
+	index := atomic.AddUintptr(&o.key, 1)
+	if index >= uintptr(len(o.handers)) {
+		Panic("No key left.")
 	}
-	poolLen := atomic.AddUintptr(&o.poolLen, 1)
-	if poolLen > uintptr(len(o.pool)) {
-		Panic("pool:%v is full", len(o.pool))
+	dispatchKey = DispatchKey{
+		dispatcher: unsafe.Pointer(o),
+		key:        index,
 	}
-	o.pool[poolLen] = handler
-	return ArrayDispatchKey{
-		uintptr: poolLen,
-	}
+	o.handers[dispatchKey.key] = handler
+	return
 }
 
-// Apply the <arg> with the function has the key <index>
-// index: must be the value returned from Add()
-func (o *ArrayDispatch) Call(key ArrayDispatchKey, arg interface{}) {
-	if key == (ArrayDispatchKey{}) {
+func (o *ArrayDispatch) Call(key DispatchKey, arg interface{}) {
+	if key == (DispatchKey{}) {
 		Panic("key:%v isn't valid", key)
 	}
-	handler := o.pool[key.uintptr]
+	handler := o.handers[key.key]
 	handler(arg)
 }
 
-// don't use mix with .Add()
-// exist data race if index is the same
-// index: require > 0
-//func (o *ArrayDispatch) Set(index uintptr, handler func(interface{})) ArrayDispatchKey {
-//	if index == 0 {
-//		Panic("index == 0, want !0")
-//	}
-//	if index >= uintptr(len(o.pool)) {
-//		Panic("index:%v is out of range:%v", index, len(o.pool))
-//	}
-//	if handler == nil {
-//		Panic("handler == nil, want !nil")
-//	}
-//	atomic.StoreUintptr(&o.poolLen, index)
-//	o.pool[index] = handler
-//	return ArrayDispatchKey{
-//		uintptr: index,
-//	}
-//}
+func (o *ArrayDispatch) Get(key DispatchKey) func(interface{}) {
+	return o.handers[key.key]
+}

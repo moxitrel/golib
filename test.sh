@@ -27,9 +27,7 @@ cd $(dirname $0)
 # When invoking the generated test binary (the result of 'go test -c') directly, the 'test.' prefix is mandatory.
 cmd=" go test               "   # 默认测试 pkg in current directory
 cmd="$cmd -race             "   # enable data race detection
-#cmd=" $cmd -v               "   # print Log() msg
-#cmd=" $cmd -vet -all        "   # run "go vet $VET_FLAGS" during test
-#cmd=" $cmd -run $TEST_REGEX "   # run test matching $TEST_REGEX
+cmd=" $cmd -vet -all        "   # run "go vet $VET_FLAGS" during test
 cmd=" $cmd -failfast        "   # exit if one of tests failed
 
 cmd=" $cmd -cover                                           "   # coverage analysis, line number may be changed
@@ -41,11 +39,12 @@ cmd=" $cmd -cover                                           "   # coverage analy
 #cmd=" $cmd -coverpkg                $COVER_PKG              "   # apply to pkgs match "pattern1,pattern2,pattern3", default for the package being tested
 #cmd=" $cmd -coverprofile            $OUT                    "   # profile coverage
 
-# run each test and benchmark $COUNT:1 times
-#cmd=" $cmd -count   $COUNT "
 # run no longer than $TIMEOUT:10m
 # 0: the timeout is disabled
 # the default is 10 minutes (10m)
 #cmd=" $cmd -timeout $TIMEOUT "
 
+#cmd=" $cmd -run $TEST_REGEX "   # run test matching $TEST_REGEX
+#cmd=" $cmd -count    $COUNT "   # run each test and benchmark $COUNT:1 times
+#cmd=" $cmd -v               "   # print Log() msg
 $cmd $PKG $*
