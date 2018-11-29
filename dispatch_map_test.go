@@ -19,7 +19,8 @@ func TestMapDispatch_DataRace(t *testing.T) {
 			o.Get(0)
 		})
 		svc.NewLoop(func() {
-			o.Call(0, nil)
+			f := o.Get(0).(func(interface{}))
+			f(nil)
 		})
 	}
 	time.Sleep(time.Second)

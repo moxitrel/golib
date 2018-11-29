@@ -2,19 +2,33 @@ package golib
 
 import (
 	"sync"
+	"sync/atomic"
+	"unsafe"
 )
 
 type MapDispatch struct {
 	sync.Map
+	key uintptr
 }
 
 func NewMapDispatch() *MapDispatch {
 	return &MapDispatch{
-		Map:     sync.Map{},
+		Map: sync.Map{},
+		key: 0,
 	}
 }
 
-func (o *MapDispatch) Set(key interface{}, handler func(interface{})) {
+func (o *MapDispatch) Add(handler interface{}) (dispatchKey DispatchKey) {
+	dispatchKey.key = atomic.AddUintptr(&o.key, 1)
+	if dispatchKey.key == 0 {
+		Panic("No key left.")
+	}
+	dispatchKey.dispatcher = unsafe.Pointer(o)
+	o.Store(dispatchKey, handler)
+	return
+}
+
+func (o *MapDispatch) Set(key interface{}, handler interface{}) {
 	switch handler {
 	case nil:
 		o.Delete(key)
@@ -23,20 +37,7 @@ func (o *MapDispatch) Set(key interface{}, handler func(interface{})) {
 	}
 }
 
-func (o *MapDispatch) Get(key interface{}) (v func(interface{})) {
+func (o *MapDispatch) Get(key interface{}) interface{} {
 	handler, _ := o.Load(key)
-	if handler != nil {
-		v = handler.(func(interface{}))
-	}
-	return
-}
-
-func (o *MapDispatch) Call(key interface{}, arg interface{}) {
-	handler, _ := o.Load(key)
-	switch handler {
-	case nil:
-		// nop
-	default:
-		handler.(func(interface{}))(arg)
-	}
+	return handler
 }
