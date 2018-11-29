@@ -13,38 +13,33 @@ type DispatchKey struct {
 
 // fixed size, add only
 type ArrayDispatch struct {
-	handers []func(interface{})
+	handers []interface{}
 	key     uintptr
 }
 
 func NewArrayDispatch(size uintptr) *ArrayDispatch {
 	return &ArrayDispatch{
-		handers: make([]func(interface{}), size),
+		handers: make([]interface{}, size),
 		key:     0,
 	}
 }
 
-func (o *ArrayDispatch) Add(handler func(interface{})) (dispatchKey DispatchKey) {
-	index := atomic.AddUintptr(&o.key, 1)
-	if index >= uintptr(len(o.handers)) {
+func (o *ArrayDispatch) Add(handler interface{}) (dispatchKey DispatchKey) {
+	dispatchKey.key = atomic.AddUintptr(&o.key, 1)
+	if dispatchKey.key >= uintptr(len(o.handers)) {
 		Panic("No key left.")
 	}
-	dispatchKey = DispatchKey{
-		dispatcher: unsafe.Pointer(o),
-		key:        index,
-	}
+	dispatchKey.dispatcher = unsafe.Pointer(o)
 	o.handers[dispatchKey.key] = handler
 	return
 }
 
-func (o *ArrayDispatch) Call(key DispatchKey, arg interface{}) {
-	if key == (DispatchKey{}) {
-		Panic("key:%v isn't valid", key)
+func (o *ArrayDispatch) Get(dispatchKey DispatchKey) interface{} {
+	if dispatchKey.dispatcher != unsafe.Pointer(o) {
+		Panic("dispatchKey:%v isn't valid", dispatchKey)
 	}
-	handler := o.handers[key.key]
-	handler(arg)
-}
-
-func (o *ArrayDispatch) Get(key DispatchKey) func(interface{}) {
-	return o.handers[key.key]
+	if dispatchKey.key == 0 {
+		Panic("dispatchKey:%v isn't valid", dispatchKey)
+	}
+	return o.handers[dispatchKey.key]
 }
