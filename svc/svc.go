@@ -1,15 +1,10 @@
-/*
-NewLoop ^f	: "Loop running f() in background."
-		Stop: "Signal service to stop."
-		Join: "Wait service to stop."
-*/
 package svc
 
 import (
 	"sync/atomic"
 )
 
-// State
+// Svc.state
 const (
 	NIL = iota
 	RUNNING
@@ -17,35 +12,45 @@ const (
 )
 
 type Svc struct {
-	state uintptr
+	state int32
 }
 
-func NewSvc(pre func(), do func(), post func()) (o *Svc) {
+func NewSvc(pre func(), post func(), do func()) (o *Svc) {
 	o = &Svc{
 		state: RUNNING,
 	}
 	go func() {
+		// update state if panic
+		defer o.Stop()
+		// run post() even panic
+		if post != nil {
+			defer post()
+		}
+
 		if pre != nil {
 			pre()
 		}
 		if do != nil {
-			for o.State() == RUNNING {
-				do()
+			for {
+				switch o.State() {
+				case RUNNING:
+					do()
+				default:
+					goto BREAK_FOR
+				}
 			}
-		}
-		if post != nil {
-			post()
+		BREAK_FOR:
 		}
 	}()
 	return
 }
 
-// Signal to stop running. May not stop immediately.
+// Signal service to exit. May not stop immediately.
 func (o *Svc) Stop() {
-	atomic.StoreUintptr(&o.state, STOPPED)
+	atomic.StoreInt32(&o.state, STOPPED)
 }
 
 // Get current running state.
-func (o *Svc) State() uintptr {
-	return atomic.LoadUintptr(&o.state)
+func (o *Svc) State() int32 {
+	return atomic.LoadInt32(&o.state)
 }

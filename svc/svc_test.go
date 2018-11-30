@@ -1,18 +1,19 @@
 package svc
 
 import (
-	"sync"
 	"testing"
 )
 
-func TestSvc_Stop(t *testing.T) {
-	var wg sync.WaitGroup
-	wg.Add(1)
-	o := NewSvc(nil, func() {
-
-	}, func() {
-		wg.Done()
-	})
-	o.Stop()
-	wg.Wait()
+func TestSvc_DataRace(t *testing.T) {
+	o := NewSvc(nil, nil, func() {})
+	for i := 0; i < 2; i++ {
+		NewLoop(func() {
+			o.State()
+		})
+	}
+	for i := 0; i < 2; i++ {
+		NewLoop(func() {
+			o.Stop()
+		})
+	}
 }
