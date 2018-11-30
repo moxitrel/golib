@@ -1,12 +1,3 @@
-/*
-
-func         PoolWrapper (func (interface{})                     ) *Pool
-func (*Pool) WithCount(min   uint         , max     uint         ) *Pool
-func (*Pool) WithTime (delay time.Duration, timeout time.Duration) *Pool
-
-func (*Pool) Call     (interface{})
-
-*/
 package svc
 
 import (
@@ -39,24 +30,13 @@ func (o Timer) Stop() {
 }
 
 const (
-	_POOL_WORKER_MIN     = 1
-	_POOL_WORKER_MAX     = math.MaxUint16
-	_POOL_WORKER_DELAY   = 250 * time.Millisecond
-	_POOL_WORKER_TIMEOUT = 45 * time.Second
+	_POOL_WORKER_DELAY = 250 * time.Millisecond
 
 	// time to wait for receiving sent args when receive stop signal
 	_STOP_DELAY = 200 * time.Millisecond
 )
 
 // Start [min, max] goroutines of <Pool.fun> to process <Pool.arg>
-//
-// * Example
-// f := func(x interface{}) { time.Sleep(time.Second) }
-// p := PoolWrapper(f)	    // start 1 goroutines of f
-// p.Call("1")			// run f("1") in background and return immediately
-// p.Call("2")			// run f("2") in background after block <Pool.delay> ns
-// p.Call("3")			// run f("3") in background after block <Pool.delay> ns
-//
 type Pool struct {
 	// at least <min> workers will be created and live all the time
 	min int32
@@ -144,18 +124,19 @@ func NewPool(min, max uint, delay, timeout time.Duration, bufferSize uint, fun f
 		fun: fun,
 		arg: make(chan interface{}, bufferSize),
 
-		timeoutTicker: nil, // inited below
-		workerDelta:   512, // default number of timeoutSignal to send per tick
-		life:          2,   // default life
-		delayTicker:   nil, // inited below
+		//timeoutTicker: nil,
+		workerDelta: 512, // default number of timeoutSignal to send per tick
+		life:        2,   // default life
+		//delayTicker:   nil,
 
 		curLock:  sync.Mutex{},
 		stopOnce: sync.Once{},
 		wg:       sync.WaitGroup{},
 	}
+	// init delayTicker, timeoutTicker
 	o.SetTimeout(delay, timeout)
 
-	// if timeout is too small, new process may exit quicker than creating.
+	// NOTE: if timeout is too small, new process may exit quicker than creating.
 	for i := o.min; i > 0; i-- {
 		o.newProcess()
 	}
@@ -163,7 +144,7 @@ func NewPool(min, max uint, delay, timeout time.Duration, bufferSize uint, fun f
 }
 
 func PoolWrapper(fun func(interface{})) (func(interface{}), func()) {
-	v := NewPool(_POOL_WORKER_MIN, _POOL_WORKER_MAX, _POOL_WORKER_DELAY, _POOL_WORKER_TIMEOUT, 0, fun)
+	v := NewPool(2, math.MaxUint16, 0, time.Minute, math.MaxUint16, fun)
 	return v.Call, v.Stop
 }
 
@@ -255,7 +236,7 @@ CALL:
 	default:
 		select {
 		case o.arg <- arg:
-			if len(o.arg) > 0 {
+			if int(o.getFreeCount()) < len(o.arg) {
 				o.newProcess()
 			}
 		default:
@@ -286,6 +267,9 @@ func (o *Pool) SetTimeout(delay time.Duration, timeout time.Duration) {
 		timeoutTicker := time.NewTicker(o.timeout)
 		o.wg.Add(1)
 		o.timeoutTicker = NewSvc(nil, func() {
+			o.wg.Done()
+			timeoutTicker.Stop()
+		}, func() {
 			<-timeoutTicker.C
 			// stop idle workers
 			n := o.getFreeCount()
@@ -300,9 +284,6 @@ func (o *Pool) SetTimeout(delay time.Duration, timeout time.Duration) {
 					return
 				}
 			}
-		}, func() {
-			o.wg.Done()
-			timeoutTicker.Stop()
 		})
 	}
 
@@ -314,6 +295,9 @@ func (o *Pool) SetTimeout(delay time.Duration, timeout time.Duration) {
 		delayTicker := time.NewTicker(o.delay)
 		o.wg.Add(1)
 		o.delayTicker = NewSvc(nil, func() {
+			o.wg.Done()
+			delayTicker.Stop()
+		}, func() {
 			<-delayTicker.C
 			jobs := len(o.arg)
 			idleWorkers := o.getFreeCount()
@@ -331,9 +315,6 @@ func (o *Pool) SetTimeout(delay time.Duration, timeout time.Duration) {
 					o.newProcess()
 				}
 			}
-		}, func() {
-			o.wg.Done()
-			delayTicker.Stop()
 		})
 	}
 }

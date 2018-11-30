@@ -1,29 +1,3 @@
-/*
-
-FuncWrap (Any -> ())	: "loop f(arg)"
-	Call Any : "sched f(arg)"
-
-*** e.g.
-
-// 1. define a new type derive Func
-type T struct {
-	*Func
-}
-
-// 2. define construction
-func NewF() T {
-	return &F{FuncWrap(func(argAny interface{}) {
-		arg := argAny.(ArgT)	// recover the type
-		...
-	})}
-}
-
-// 3. override Call() with desired type
-func (o *T) Call(x ArgT) {
-	o.Func.Call(x)
-}
-
-*/
 package svc
 
 import (
@@ -44,12 +18,12 @@ var stopSignal = _StopSignal{}
 // Make a new Func service.
 // argsCap: the max number of argument can be buffered.
 // fun: panic if nil.
-func NewFunc(argsCap uint, fun func(interface{})) (o Func) {
+func NewFunc(argsCap uint, fun func(interface{})) (o *Func) {
 	if fun == nil {
 		golib.Panic("fun == nil, want !nil")
 	}
 
-	o = Func{
+	o = &Func{
 		args: make(chan interface{}, argsCap),
 	}
 	o.Loop = NewLoop(func() {
@@ -66,13 +40,11 @@ func NewFunc(argsCap uint, fun func(interface{})) (o Func) {
 					}
 					select {
 					case arg = <-o.args:
-						// handle arg
 					default:
 						stopTimer.Start(_STOP_DELAY)
 						select {
 						case arg = <-o.args:
 							stopTimer.Stop()
-							// handle arg
 						case <-stopTimer.C:
 							return
 						}

@@ -1,8 +1,3 @@
-/*
-NewLoop ^f	: "Loop running f() in background."
-		Stop: "Signal service to stop."
-		Join: "Wait service to stop."
-*/
 package svc
 
 import (
@@ -10,27 +5,26 @@ import (
 	"sync"
 )
 
-// Loop running thunk() in a new goroutine.
 type Loop struct {
 	*Svc
 	wg sync.WaitGroup
 }
 
-// Make a new Loop.
-// thunk: panic if nil.
+// Loop running thunk() in a new goroutine.
 func NewLoop(thunk func()) (o *Loop) {
 	if thunk == nil {
 		golib.Panic("thunk == nil, want !nil")
 	}
 	o = new(Loop)
 	o.wg.Add(1)
-	o.Svc = NewSvc(nil, thunk, func() {
-		o.wg.Done()
-	})
+	o.Svc = NewSvc(
+		nil,
+		func() { o.wg.Done() },
+		thunk)
 	return
 }
 
-// Block the current goroutine until stopped.
+// Block current goroutine until stopped.
 func (o *Loop) Join() {
 	o.wg.Wait()
 }
