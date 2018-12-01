@@ -53,7 +53,7 @@ func TestFunc_CallAfterStop(t *testing.T) {
 		x = arg.(int)
 	})
 	o.Stop()
-	o.Join()
+	o.Wait()
 
 	// no effect after stop
 	o.Call(2)
@@ -65,7 +65,7 @@ func TestFunc_CallAfterStop(t *testing.T) {
 func TestFunc_Join(t *testing.T) {
 	o := NewFunc(0, func(i interface{}) {})
 	o.Stop()
-	o.Join()
+	o.Wait()
 }
 
 func TestFunc_DataRace(t *testing.T) {
@@ -83,8 +83,8 @@ func TestFunc_DataRace(t *testing.T) {
 			o.Stop()
 		})
 		NewLoop(func() {
-			o.Join()
+			o.Wait()
 		})
 	}
-	o.Join()
+	o.Wait()
 }

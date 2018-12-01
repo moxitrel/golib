@@ -53,7 +53,7 @@ func Test_NestedSelect(t *testing.T) {
 		select {
 		case <-signal:
 			flag = 2
-		case <-timeAfter(): // quit if idle for <timeout> ns
+		case <-timeAfter(): // quit if idle for <idle> ns
 			flag = 3
 		}
 	}
@@ -80,14 +80,14 @@ func TestPool_Join(t *testing.T) {
 	// stop pool
 	t1 := time.Now()
 	o.Stop()
-	o.Join()
+	o.Wait()
 	t2 := time.Now()
-	t.Logf("join / timeout : %v / %v", t2.Sub(t1), timeout)
+	t.Logf("join / idle : %v / %v", t2.Sub(t1), timeout)
 	time.Sleep(_STOP_DELAY)
 
 	// check the number of goroutine
 	if d := runtime.NumGoroutine() - ngo0; d > 0 {
-		t.Errorf("%v goroutines left after .Join(), want 0", d)
+		t.Errorf("%v goroutines left after .Wait(), want 0", d)
 	}
 	// check the cost time to stop
 	if d := t2.Sub(t1); d > timeout+time.Duration(min)*4*time.Millisecond {

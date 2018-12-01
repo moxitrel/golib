@@ -25,6 +25,6 @@ func NewLoop(thunk func()) (o *Loop) {
 }
 
 // Block current goroutine until stopped.
-func (o *Loop) Join() {
+func (o *Loop) Wait() {
 	o.wg.Wait()
 }

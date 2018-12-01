@@ -11,7 +11,7 @@ import (
 func TestTime_Every(t *testing.T) {
 	var accuracy = 250 * time.Millisecond
 	o := NewMapOnTime(accuracy)
-	defer o.Join()
+	defer o.Wait()
 	defer o.Stop()
 
 	intvl := 1 * time.Second
