@@ -5,7 +5,6 @@ import (
 	"math"
 )
 
-// Loop running fun(arg) in a new goroutine.
 type Func struct {
 	*Loop
 	args chan interface{} // argument buffer
@@ -15,7 +14,7 @@ type _StopSignal struct{}
 
 var stopSignal = _StopSignal{}
 
-// Make a new Func service.
+// Loop running fun(arg) in a new goroutine.
 // argsCap: the max number of argument can be buffered.
 // fun: panic if nil.
 func NewFunc(argsCap uint, fun func(interface{})) (o *Func) {
@@ -27,30 +26,34 @@ func NewFunc(argsCap uint, fun func(interface{})) (o *Func) {
 		args: make(chan interface{}, argsCap),
 	}
 	o.Loop = NewLoop(func() {
-		for arg := range o.args {
+		var arg interface{}
+		for arg = range o.args {
 			switch arg {
 			case stopSignal:
-				o.Loop.Stop()
-				stopTimer := NewTimer()
-				for {
-					// when .Stop(), continue to handle delivered args,
-					// or client may be blocked at .Call()
-					if arg != stopSignal {
-						fun(arg)
-					}
-					select {
-					case arg = <-o.args:
-					default:
-						stopTimer.Start(_STOP_DELAY)
-						select {
-						case arg = <-o.args:
-							stopTimer.Stop()
-						case <-stopTimer.C:
-							return
-						}
-					}
-				}
+				goto handleStop
 			default:
+				fun(arg)
+			}
+		}
+
+	handleStop:
+		o.Loop.Stop()
+		stopTimer := NewTimer()
+		// when .Stop(), continue to handle delivered args,
+		// or client may be blocked at .Call()
+		for {
+			select {
+			case arg = <-o.args:
+			default:
+				stopTimer.Start(_STOP_DELAY)
+				select {
+				case arg = <-o.args:
+					stopTimer.Stop()
+				case <-stopTimer.C:
+					return
+				}
+			}
+			if arg != stopSignal {
 				fun(arg)
 			}
 		}

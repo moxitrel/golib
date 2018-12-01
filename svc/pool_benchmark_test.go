@@ -3,6 +3,7 @@ package svc
 import (
 	"math"
 	"reflect"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -44,7 +45,26 @@ func BenchmarkNow(b *testing.B) {
 		time.Now()
 	}
 }
+func BenchmarkAtomicAdd(b *testing.B) {
+	var x int64
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		atomic.AddInt64(&x, 1)
+		atomic.AddInt64(&x, -1)
+	}
+}
 
+func BenchmarkChan_Select0(b *testing.B) {
+	c := make(chan interface{})
+	NewLoop(func() {
+		<-c
+	})
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		c <- struct{}{}
+	}
+}
 func BenchmarkChan_Select1(b *testing.B) {
 	c := make(chan interface{})
 	NewLoop(func() {
