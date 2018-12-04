@@ -139,10 +139,10 @@ func NewPool(min, max uint, delay, timeout time.Duration, bufferSize uint, fun f
 		fun: fun,
 		arg: make(chan interface{}, bufferSize),
 
-		//delay:     delay,
-		//idle:   idle,
-		//idleTicker: nil,
-		//delayTicker:   nil,
+		//delay:     	delay,
+		//idle:   		idle,
+		//idleTicker: 	nil,
+		//delayTicker:	nil,
 		maxSignal: math.MaxInt16, // default max number of signals to send per tick
 		life:      2,             // default life
 
@@ -170,7 +170,7 @@ func (o *Pool) newProcess() {
 	// Use Mutex will be more robust:
 	//		o.curLock.Lock()
 	//		if o.getCur() < o.getMax() {
-	//		 o.incCur()
+	//		 	o.incCur()
 	//			o.curLock.Unlock()
 	//		} else {
 	//			o.curLock.Unlock()
@@ -257,7 +257,7 @@ func (o *Pool) Wait() {
 	o.wg.Wait()
 }
 
-// FIXME: Call() creates more than 1 worker if delay = 0, add pause after newProcess()
+// NOTE: Call() creates more than 1 worker if delay = 0
 func (o *Pool) Call(arg interface{}) {
 CALL:
 	switch {

@@ -14,18 +14,18 @@ type DispatchKey struct {
 // fixed size, add only
 type ArrayDispatch struct {
 	handers []interface{}
-	key     uintptr
+	index   uintptr
 }
 
 func NewArrayDispatch(size uintptr) *ArrayDispatch {
 	return &ArrayDispatch{
 		handers: make([]interface{}, size),
-		key:     0,
+		index:   0,
 	}
 }
 
 func (o *ArrayDispatch) Add(handler interface{}) (dispatchKey DispatchKey) {
-	dispatchKey.key = atomic.AddUintptr(&o.key, 1)
+	dispatchKey.key = atomic.AddUintptr(&o.index, 1)
 	if dispatchKey.key >= uintptr(len(o.handers)) {
 		Panic("No key left.")
 	}
