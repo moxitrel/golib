@@ -12,10 +12,7 @@ type MapDispatch struct {
 }
 
 func NewMapDispatch() *MapDispatch {
-	return &MapDispatch{
-		Map: sync.Map{},
-		key: 0,
-	}
+	return new(MapDispatch)
 }
 
 func (o *MapDispatch) Add(handler interface{}) (dispatchKey DispatchKey) {
