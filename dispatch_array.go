@@ -12,8 +12,21 @@ type DispatchKey struct {
 }
 
 type DispatchMessage struct {
-	DispatchKey DispatchKey
-	Message interface{}
+	dispatchKey DispatchKey
+	message     interface{}
+}
+
+func NewDispatchMessage(key DispatchKey, message interface{}) DispatchMessage {
+	return DispatchMessage{
+		dispatchKey: key,
+		message:     message,
+	}
+}
+func (o DispatchMessage) DispatchKey() interface{} {
+	return o.dispatchKey
+}
+func (o DispatchMessage) Message() interface{} {
+	return o.message
 }
 
 // fixed size, add only
