@@ -11,6 +11,11 @@ type DispatchKey struct {
 	key        uintptr
 }
 
+type DispatchMessage struct {
+	DispatchKey DispatchKey
+	Message interface{}
+}
+
 // fixed size, add only
 type ArrayDispatch struct {
 	handers []func(interface{})
