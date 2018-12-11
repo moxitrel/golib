@@ -15,6 +15,15 @@ func BenchmarkFunCall_Reflect(b *testing.B) {
 		o.Call([]reflect.Value{reflect.ValueOf(0)})
 	}
 }
+func BenchmarkFunCall_MapDispatch(b *testing.B) {
+	o := new(MapDispatch)
+	o.Set(9, func(interface{}) {})
+
+	for i := 0; i < b.N; i++ {
+		f := o.Get(9)
+		f(0)
+	}
+}
 func BenchmarkFunCall_Map(b *testing.B) {
 	n := 0
 	o := map[interface{}]interface{}{
@@ -25,21 +34,12 @@ func BenchmarkFunCall_Map(b *testing.B) {
 		o[n].(func())()
 	}
 }
-func BenchmarkFunCall_MapDispatch(b *testing.B) {
-	o := new(MapDispatch)
-	o.Set(9, func(interface{}) {})
-
-	for i := 0; i < b.N; i++ {
-		f := o.Get(9).(func(interface{}))
-		f(0)
-	}
-}
 func BenchmarkFunCall_ArrayDispatch(b *testing.B) {
 	o := NewArrayDispatch(uintptr(1 + rand.Intn(math.MaxInt8)))
 	n := o.Add(func(i interface{}) {})
 
 	for i := 0; i < b.N; i++ {
-		f := o.Get(n).(func(interface{}))
+		f := o.Get(n)
 		f(0)
 	}
 }

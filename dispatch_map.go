@@ -15,7 +15,7 @@ func NewMapDispatch() *MapDispatch {
 	return new(MapDispatch)
 }
 
-func (o *MapDispatch) Add(handler interface{}) (dispatchKey DispatchKey) {
+func (o *MapDispatch) Add(handler func(interface{})) (dispatchKey DispatchKey) {
 	dispatchKey.key = atomic.AddUintptr(&o.key, 1)
 	if dispatchKey.key == 0 {
 		Panic("No key left.")
@@ -25,7 +25,7 @@ func (o *MapDispatch) Add(handler interface{}) (dispatchKey DispatchKey) {
 	return
 }
 
-func (o *MapDispatch) Set(key interface{}, handler interface{}) {
+func (o *MapDispatch) Set(key interface{}, handler func(interface{})) {
 	switch handler {
 	case nil:
 		o.Delete(key)
@@ -34,7 +34,18 @@ func (o *MapDispatch) Set(key interface{}, handler interface{}) {
 	}
 }
 
-func (o *MapDispatch) Get(key interface{}) interface{} {
+func (o *MapDispatch) Get(key interface{}) func(interface{}) {
 	handler, _ := o.Load(key)
-	return handler
+	if handler == nil {
+		return nil
+	}
+	return handler.(func(interface{}))
+}
+
+func (o *MapDispatch) Call(key interface{}, arg interface{}) {
+	fun := o.Get(key)
+	if fun == nil {
+		Panic("%v: handler doesn't exist", key)
+	}
+	fun(arg)
 }

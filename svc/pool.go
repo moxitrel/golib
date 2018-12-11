@@ -58,9 +58,9 @@ type Pool struct {
 	fun func(interface{})
 	arg chan interface{}
 
-	// send idle-signal to worker periodically
+	// send timeoutSignal to worker periodically
 	idleTicker *Svc
-	// send idle-signal to submitter periodically through delayChannel
+	// send timeoutSignal to submitter periodically through delayChannel
 	delayTicker *Svc
 	// decrease worker's life when tick-signal received, idle when life <= 0
 	life int32
@@ -69,7 +69,8 @@ type Pool struct {
 	maxSignal int32
 
 	// lock cur when updating
-	curLock  sync.Mutex
+	curLock sync.Mutex
+
 	stopOnce sync.Once
 	wg       sync.WaitGroup
 }
@@ -166,7 +167,9 @@ func PoolWrapper(fun func(interface{})) (func(interface{}), func()) {
 func (o *Pool) newProcess() {
 	// NOTE: PLEASE DO NOT FIX THE FOLLOW PIECE OF CODE UNTIL ENCOUNTER ISSUE.
 	//
-	// The following method (in testing) to update o.cur is not correct in theory, but ok in practice for int64. (int128 is better, but int32 isn't good enough)
+	// The following method (in testing) to update o.cur is not correct in theory, but ok in practice for int64.
+	// (int128 is better, but int32 isn't good enough)
+	//
 	// Use Mutex will be more robust:
 	//		o.curLock.Lock()
 	//		if o.getCur() < o.getMax() {
@@ -257,7 +260,7 @@ func (o *Pool) Wait() {
 	o.wg.Wait()
 }
 
-// NOTE: Call() creates more than 1 worker if delay = 0
+// NOTE: Call() may create more than 1 worker if delay = 0
 func (o *Pool) Call(arg interface{}) {
 CALL:
 	switch {

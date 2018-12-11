@@ -3,12 +3,18 @@ package svc
 import (
 	"container/ring"
 	"math"
-	"math/rand"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 )
+
+func BenchmarkNow(b *testing.B) {
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		time.Now()
+	}
+}
 
 func BenchmarkTime_Sleep_0(b *testing.B) {
 	for i := 0; i < b.N; i++ {
@@ -244,35 +250,6 @@ func BenchmarkTime_Ticker_1ms(b *testing.B) {
 	o := time.NewTicker(time.Millisecond)
 	for i := 0; i < b.N; i++ {
 		<-o.C
-	}
-}
-
-func BenchmarkAtomic_64_1(b *testing.B) {
-	x := int64(0)
-	for i := 0; i < b.N; i++ {
-		atomic.AddInt64(&x, -1)
-	}
-}
-func BenchmarkAtomic_64_N(b *testing.B) {
-	x := int64(0)
-	rand.Seed(time.Now().UnixNano())
-	d := rand.Int63()
-	for i := 0; i < b.N; i++ {
-		atomic.AddInt64(&x, -d)
-	}
-}
-func BenchmarkAtomic_32_1(b *testing.B) {
-	x := int32(0)
-	for i := 0; i < b.N; i++ {
-		atomic.AddInt32(&x, -1)
-	}
-}
-func BenchmarkAtomic_32_N(b *testing.B) {
-	x := int32(0)
-	rand.Seed(time.Now().UnixNano())
-	d := rand.Int31()
-	for i := 0; i < b.N; i++ {
-		atomic.AddInt32(&x, -d)
 	}
 }
 
