@@ -13,28 +13,28 @@ type DispatchKey struct {
 
 // fixed size, add only
 type ArrayDispatch struct {
-	handers []interface{}
+	handers []func(interface{})
 	index   uintptr
 }
 
 func NewArrayDispatch(size uintptr) *ArrayDispatch {
 	return &ArrayDispatch{
-		handers: make([]interface{}, size),
+		handers: make([]func(interface{}), size),
 		index:   0,
 	}
 }
 
-func (o *ArrayDispatch) Add(handler interface{}) (dispatchKey DispatchKey) {
+func (o *ArrayDispatch) Add(handler func(interface{})) (dispatchKey DispatchKey) {
 	dispatchKey.key = atomic.AddUintptr(&o.index, 1)
 	if dispatchKey.key >= uintptr(len(o.handers)) {
-		Panic("No key left.")
+		Panic("Exceed the max size.")
 	}
 	dispatchKey.dispatcher = unsafe.Pointer(o)
 	o.handers[dispatchKey.key] = handler
 	return
 }
 
-func (o *ArrayDispatch) Get(dispatchKey DispatchKey) interface{} {
+func (o *ArrayDispatch) Get(dispatchKey DispatchKey) func(interface{}) {
 	if dispatchKey.dispatcher != unsafe.Pointer(o) {
 		Panic("dispatchKey:%v isn't valid", dispatchKey)
 	}
@@ -42,4 +42,9 @@ func (o *ArrayDispatch) Get(dispatchKey DispatchKey) interface{} {
 		Panic("dispatchKey:%v isn't valid", dispatchKey)
 	}
 	return o.handers[dispatchKey.key]
+}
+
+func (o *ArrayDispatch) Call(dispatchKey DispatchKey, arg interface{}) {
+	fun := o.Get(dispatchKey)
+	fun(arg)
 }

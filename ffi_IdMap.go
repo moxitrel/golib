@@ -1,33 +1,40 @@
 package golib
 
-import "unsafe"
+import (
+	"sync"
+	"sync/atomic"
+)
 
 ///
-/// Map go pointer object to an unique number
+/// Map Go pointer object to an unique number
 ///
 /// C code may not keep a copy of a Go pointer after the call returns.
 /// Type always include Go pointers: string, channel, function types, interface, slice, map, _GoString_
 ///
 type IdMap struct {
-	MapDispatch
+	sync.Map
+	uintptr
+}
+
+func NewIdMap() *IdMap {
+	o := new(IdMap)
+	o.Store(0, nil)
+	return o
 }
 
 func (o *IdMap) Add(ptr interface{}) (id uintptr) {
-	return o.MapDispatch.Add(ptr).key
-}
-
-func (o *IdMap) Delete(id uintptr) {
-	dispatchKey := DispatchKey{
-		dispatcher: unsafe.Pointer(&o.MapDispatch),
-		key:        id,
+	if ptr == nil {
+		return 0
 	}
-	o.Set(dispatchKey, nil)
+	id = atomic.AddUintptr(&o.uintptr, 1)
+	if id == 0 {
+		Panic("id out of range.")
+	}
+	o.Store(id, ptr)
+	return
 }
 
 func (o *IdMap) Get(id uintptr) interface{} {
-	dispatchKey := DispatchKey{
-		dispatcher: unsafe.Pointer(&o.MapDispatch),
-		key:        id,
-	}
-	return o.MapDispatch.Get(dispatchKey)
+	val, _ := o.Load(id)
+	return val
 }

@@ -20,7 +20,7 @@ func TestMapDispatch_DataRace(t *testing.T) {
 			o.Get(0)
 		})
 		svc.NewLoop(func() {
-			f := o.Get(0).(func(interface{}))
+			f := o.Get(0)
 			f(nil)
 		})
 	}
