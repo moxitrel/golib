@@ -5,30 +5,6 @@ import (
 	"unsafe"
 )
 
-// zero value is not a valid key
-type DispatchKey struct {
-	dispatcher unsafe.Pointer
-	key        uintptr
-}
-
-type DispatchMessage struct {
-	dispatchKey DispatchKey
-	message     interface{}
-}
-
-func NewDispatchMessage(key DispatchKey, message interface{}) DispatchMessage {
-	return DispatchMessage{
-		dispatchKey: key,
-		message:     message,
-	}
-}
-func (o DispatchMessage) DispatchKey() interface{} {
-	return o.dispatchKey
-}
-func (o DispatchMessage) Message() interface{} {
-	return o.message
-}
-
 // fixed size, add only
 type ArrayDispatch struct {
 	handers []func(interface{})
