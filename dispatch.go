@@ -2,25 +2,27 @@ package golib
 
 import "unsafe"
 
-// zero value is not a valid key
-type DispatchKey struct {
-	dispatcher unsafe.Pointer
-	key        uintptr
-}
-func (o DispatchKey) DispatchKey() interface{} {
-	return o
-}
-
 type DispatchMessage interface {
 	DispatchKey() interface{}
 }
 
+// zero value is not a valid key
+type EmbeddedDispatchKey struct {
+	dispatcher unsafe.Pointer
+	key        uintptr
+}
+func (o EmbeddedDispatchKey) DispatchKey() interface{} {
+	return o
+}
+
+
+///// deprecated /////
 type DispatchKeyMessage struct {
-	dispatchKey DispatchKey
+	dispatchKey EmbeddedDispatchKey
 	message     interface{}
 }
 
-func WithDispatchKey(key DispatchKey, message interface{}) DispatchKeyMessage {
+func NewDispatchKeyMessage(key EmbeddedDispatchKey, message interface{}) DispatchKeyMessage {
 	return DispatchKeyMessage{
 		dispatchKey: key,
 		message:     message,
