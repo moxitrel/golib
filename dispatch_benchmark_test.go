@@ -1,12 +1,25 @@
 package golib
 
 import (
+	"github.com/moxitrel/golib/svc"
 	"math"
 	"math/rand"
 	"reflect"
 	"sync/atomic"
 	"testing"
 )
+
+func BenchmarkDispatchKey_ReflectTypeOf(b *testing.B) {
+	o := svc.NewFunc(math.MaxInt16, func(i interface{}) {
+
+	})
+	for i := 0; i < b.N; i++ {
+		o.Call(reflect.TypeOf(struct {
+			x int64
+			y int64
+		}{}))
+	}
+}
 
 func BenchmarkFunCall_Reflect(b *testing.B) {
 	var o = reflect.ValueOf(func(interface{}) {})
