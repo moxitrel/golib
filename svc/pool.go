@@ -39,7 +39,7 @@ const (
 
 // Start [min, max] goroutines of <Pool.fun> to process <Pool.arg>
 type Pool struct {
-	// put in first to make it 64-bit aligned
+	// put in first to make fields 64-bit aligned
 	// the current number of workers
 	cur int64
 	// how many Call() blocked when delay > 0
@@ -61,7 +61,7 @@ type Pool struct {
 
 	// send timeoutSignal to worker periodically
 	idleTicker *Svc
-	// send timeoutSignal to submitter periodically through delayChannel
+	// send timeoutSignal to submitter periodically
 	delayTicker *Svc
 	// decrease worker's life when tick-signal received, idle when life <= 0
 	life int32
@@ -286,7 +286,7 @@ CALL:
 	}
 }
 
-// Changue when to create or kill a goroutine.
+// Change when to create or kill a goroutine.
 // A new goroutine will be created after the argument blocked for <delay> ns.
 // A goroutine will be killed after idle for <idle> ns
 func (o *Pool) SetTimeout(delay time.Duration, idle time.Duration) {
