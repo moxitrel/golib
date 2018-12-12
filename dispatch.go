@@ -7,6 +7,9 @@ type DispatchKey struct {
 	dispatcher unsafe.Pointer
 	key        uintptr
 }
+func (o DispatchKey) DispatchKey() interface{} {
+	return o
+}
 
 type DispatchMessage interface {
 	DispatchKey() interface{}
