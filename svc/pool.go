@@ -39,21 +39,22 @@ const (
 
 // Start [min, max] goroutines of <Pool.fun> to process <Pool.arg>
 type Pool struct {
+	// put in first to make it 64-bit aligned
 	// the current number of workers
-	// put cur in first to make it 64-bit aligned
 	cur int64
-	// at least <min> workers will be created and live all the time
-	min int32
-	// the max number of workers can be created
-	max int32
-	// the number of idle workers
-	freeCount int32
 	// how many Call() blocked when delay > 0
 	blockCount int64
 	// create a new worker if <arg> is blocked for <delay> ns, a proper value should be >= 0.1s
 	delay time.Duration
 	// destroy the workers which idle for <idle> ns
 	idle time.Duration
+
+	// at least <min> workers will be created and live all the time
+	min int32
+	// the max number of workers can be created
+	max int32
+	// the number of idle workers
+	freeCount int32
 
 	fun func(interface{})
 	arg chan interface{}
@@ -107,10 +108,10 @@ func (o *Pool) getBlockCount() int64 {
 	return atomic.LoadInt64(&o.blockCount)
 }
 func (o *Pool) incBlockCount() int64 {
-	return int64(atomic.AddInt64(&o.blockCount, 1))
+	return atomic.AddInt64(&o.blockCount, 1)
 }
 func (o *Pool) decBlockCount() int64 {
-	return int64(atomic.AddInt64(&o.blockCount, -1))
+	return atomic.AddInt64(&o.blockCount, -1)
 }
 func (o *Pool) getDelay() time.Duration {
 	return time.Duration(atomic.LoadInt64((*int64)(&o.delay)))
