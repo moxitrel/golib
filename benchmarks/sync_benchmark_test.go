@@ -49,14 +49,14 @@ func BenchmarkAtomic_Pointer_Write(b *testing.B) {
 		atomic.StorePointer(&o, unsafe.Pointer(nil))
 	}
 }
-func BenchmarkAtomic_Interface_Read(b *testing.B) {
+func BenchmarkAtomic_Value_Read(b *testing.B) {
 	var o atomic.Value
 	o.Store(98765)
 	for i := 0; i < b.N; i++ {
 		o.Load()
 	}
 }
-func BenchmarkAtomic_Interface_Write(b *testing.B) {
+func BenchmarkAtomic_Value_Write(b *testing.B) {
 	var o atomic.Value
 	for i := 0; i < b.N; i++ {
 		o.Store(98765)
@@ -135,3 +135,18 @@ func BenchmarkLock_RWMutex_WLock(b *testing.B) {
 //		o.L.Unlock()
 //	}
 //}
+
+
+func Benchmark_Pool_Get(b *testing.B) {
+	var zeroPool = sync.Pool{
+		New: func() interface{} {
+			return struct {
+				x int
+				y int
+			}{}
+		},
+	}
+	for i := 0; i < b.N; i++ {
+		zeroPool.Get()
+	}
+}

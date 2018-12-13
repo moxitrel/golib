@@ -29,7 +29,7 @@ func BenchmarkFunCall_Reflect(b *testing.B) {
 	}
 }
 func BenchmarkFunCall_MapDispatch(b *testing.B) {
-	o := new(MapDispatch)
+	o := new(MapDispatcher)
 	o.Set(9, func(interface{}) {})
 
 	for i := 0; i < b.N; i++ {

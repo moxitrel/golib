@@ -6,16 +6,16 @@ import (
 	"unsafe"
 )
 
-type MapDispatch struct {
+type MapDispatcher struct {
 	sync.Map
 	key uintptr
 }
 
-func NewMapDispatch() *MapDispatch {
-	return new(MapDispatch)
+func NewMapDispatch() *MapDispatcher {
+	return new(MapDispatcher)
 }
 
-func (o *MapDispatch) Add(handler func(interface{})) (dispatchKey EmbeddedDispatchKey) {
+func (o *MapDispatcher) Add(handler func(interface{})) (dispatchKey AutoDispatchKey) {
 	dispatchKey.key = atomic.AddUintptr(&o.key, 1)
 	if dispatchKey.key == 0 {
 		Panic("No key left.")
@@ -25,7 +25,7 @@ func (o *MapDispatch) Add(handler func(interface{})) (dispatchKey EmbeddedDispat
 	return
 }
 
-func (o *MapDispatch) Set(key interface{}, handler func(interface{})) {
+func (o *MapDispatcher) Set(key interface{}, handler func(interface{})) {
 	switch handler {
 	case nil:
 		o.Delete(key)
@@ -34,7 +34,7 @@ func (o *MapDispatch) Set(key interface{}, handler func(interface{})) {
 	}
 }
 
-func (o *MapDispatch) Get(key interface{}) func(interface{}) {
+func (o *MapDispatcher) Get(key interface{}) func(interface{}) {
 	handler, _ := o.Load(key)
 	if handler == nil {
 		return nil
@@ -42,10 +42,11 @@ func (o *MapDispatch) Get(key interface{}) func(interface{}) {
 	return handler.(func(interface{}))
 }
 
-func (o *MapDispatch) Call(key interface{}, arg interface{}) {
+func (o *MapDispatcher) Call(key interface{}, arg interface{}) {
 	fun := o.Get(key)
 	if fun == nil {
-		Panic("%v: handler doesn't exist", key)
+		Warn("%v: handler doesn't exist", key)
+		return
 	}
 	fun(arg)
 }

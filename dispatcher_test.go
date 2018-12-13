@@ -10,7 +10,7 @@ import (
 func TestMapDispatch_DataRace(t *testing.T) {
 	t.Logf("uintptr.size: %v", unsafe.Sizeof(uintptr(0)))
 
-	o := new(MapDispatch)
+	o := new(MapDispatcher)
 	o.Set(0, func(interface{}) {})
 	for i := 0; i < 2; i++ {
 		svc.NewLoop(func() {
