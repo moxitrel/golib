@@ -12,7 +12,7 @@ type ArrayDispatcher struct {
 }
 
 // NOTE: the first one is reserved. So the max number of handlers can be added is size - 1
-func NewArrayDispatch(size uintptr) *ArrayDispatcher {
+func NewArrayDispatcher(size uintptr) *ArrayDispatcher {
 	return &ArrayDispatcher{
 		handers: make([]func(interface{}), size),
 		index:   0,

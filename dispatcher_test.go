@@ -7,7 +7,7 @@ import (
 	"unsafe"
 )
 
-func TestMapDispatch_DataRace(t *testing.T) {
+func TestMapDispatcher_DataRace(t *testing.T) {
 	t.Logf("uintptr.size: %v", unsafe.Sizeof(uintptr(0)))
 
 	o := new(MapDispatcher)

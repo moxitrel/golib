@@ -136,7 +136,6 @@ func BenchmarkLock_RWMutex_WLock(b *testing.B) {
 //	}
 //}
 
-
 func Benchmark_Pool_Get(b *testing.B) {
 	var zeroPool = sync.Pool{
 		New: func() interface{} {
