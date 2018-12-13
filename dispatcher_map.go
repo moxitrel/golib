@@ -15,7 +15,7 @@ func NewMapDispatcher() *MapDispatcher {
 	return new(MapDispatcher)
 }
 
-func (o *MapDispatcher) Add(handler func(interface{})) (dispatchKey AutoDispatchKey) {
+func (o *MapDispatcher) Add(handler func(interface{})) (dispatchKey AddDispatchKey) {
 	dispatchKey.key = atomic.AddUintptr(&o.key, 1)
 	if dispatchKey.key == 0 {
 		Panic("No key left.")
