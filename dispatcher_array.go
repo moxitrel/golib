@@ -19,7 +19,7 @@ func NewArrayDispatcher(size uintptr) *ArrayDispatcher {
 	}
 }
 
-func (o *ArrayDispatcher) Add(handler func(interface{})) (dispatchKey AutoDispatchKey) {
+func (o *ArrayDispatcher) Add(handler func(interface{})) (dispatchKey AddDispatchKey) {
 	dispatchKey.key = atomic.AddUintptr(&o.index, 1)
 	if dispatchKey.key >= uintptr(len(o.handers)) {
 		Panic("Exceed the max size.")
@@ -29,7 +29,7 @@ func (o *ArrayDispatcher) Add(handler func(interface{})) (dispatchKey AutoDispat
 	return
 }
 
-func (o *ArrayDispatcher) Get(dispatchKey AutoDispatchKey) func(interface{}) {
+func (o *ArrayDispatcher) Get(dispatchKey AddDispatchKey) func(interface{}) {
 	if dispatchKey.dispatcher != unsafe.Pointer(o) {
 		Panic("dispatchKey.dispatcher:%v isn't valid, want %v", dispatchKey.dispatcher, o)
 	}
@@ -40,7 +40,7 @@ func (o *ArrayDispatcher) Get(dispatchKey AutoDispatchKey) func(interface{}) {
 }
 
 // Use the dispatchKey returned from Add()
-func (o *ArrayDispatcher) Call(dispatchKey AutoDispatchKey, arg interface{}) {
+func (o *ArrayDispatcher) Call(dispatchKey AddDispatchKey, arg interface{}) {
 	fun := o.Get(dispatchKey)
 	fun(arg)
 }
