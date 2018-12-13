@@ -14,6 +14,7 @@ type AutoDispatchKey struct {
 	dispatcher unsafe.Pointer
 	key        uintptr
 }
+
 func (o AutoDispatchKey) DispatchKey() interface{} {
 	return o
 }
@@ -21,6 +22,7 @@ func (o AutoDispatchKey) DispatchKey() interface{} {
 type TypeDispatchKey struct {
 	Key reflect.Type
 }
+
 func (o TypeDispatchKey) DispatchKey() interface{} {
 	return o.Key
 }

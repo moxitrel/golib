@@ -11,7 +11,7 @@ type MapDispatcher struct {
 	key uintptr
 }
 
-func NewMapDispatch() *MapDispatcher {
+func NewMapDispatcher() *MapDispatcher {
 	return new(MapDispatcher)
 }
 
