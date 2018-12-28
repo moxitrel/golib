@@ -1,3 +1,10 @@
+/*
+
+NewSvc pre post do: *Svc
+	.Stop
+	.State: Int
+
+*/
 package svc
 
 import (
@@ -16,21 +23,23 @@ type Svc struct {
 	state int32
 }
 
-// pre: run once when start
-// do: loop do() when RUNNING
+// Start a goroutine loop running do().
+//
+// pre: run once before start
 // post: run once after stop
+// do: loop do() when RUNNING
 func NewSvc(pre func(), post func(), do func()) (o *Svc) {
 	o = &Svc{
 		state: RUNNING,
 	}
 	go func() {
-		// update state if panic or nil
+		// update state when finish or panic
 		defer o.Stop()
 
 		if pre != nil {
 			pre()
 		}
-		// run post() even do() panic, but not pre() panic
+		// register post() to run when do() finish or panic
 		if post != nil {
 			defer post()
 		}

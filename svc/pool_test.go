@@ -66,7 +66,7 @@ func Test_NestedSelect(t *testing.T) {
 	}
 }
 
-func TestPool_Join(t *testing.T) {
+func TestPool_Stop(t *testing.T) {
 	// goroutine number at start
 	ngo0 := runtime.NumGoroutine()
 
@@ -74,7 +74,7 @@ func TestPool_Join(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	min := rand.Intn(8000)
 	timeout := time.Second + time.Duration(rand.Int31())
-	o := NewPool(uint(min), uint(min), _POOL_WORKER_DELAY, timeout, 0, func(interface{}) {})
+	o := NewPool(uint(min), uint(min), 200*time.Millisecond, timeout, 0, func(interface{}) {})
 	t.Logf("ngo: %v", runtime.NumGoroutine()-ngo0)
 
 	// stop pool

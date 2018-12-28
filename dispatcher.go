@@ -1,7 +1,6 @@
 package golib
 
 import (
-	"reflect"
 	"unsafe"
 )
 
@@ -17,12 +16,4 @@ type DispatchKeyMixin /* implement DispatchMessage */ struct {
 
 func (o DispatchKeyMixin) DispatchKey() interface{} {
 	return o
-}
-
-type TypeDispatchKeyMixin /* implement DispatchMessage */ struct {
-	reflect.Type
-}
-
-func (o TypeDispatchKeyMixin) DispatchKey() interface{} {
-	return o.Type
 }

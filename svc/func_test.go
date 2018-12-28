@@ -7,6 +7,19 @@ import (
 	"time"
 )
 
+type T1 struct{}
+
+func (T1) Type() interface{} {
+	type T struct{}
+	return T{}
+}
+
+type T2 struct{}
+
+func (T2) Type() interface{} {
+	type T struct{}
+	return T{}
+}
 func TestFunc_StopSignal(t *testing.T) {
 	type MockStopSignal struct{}
 	mockStopSignal := MockStopSignal{}
@@ -15,9 +28,12 @@ func TestFunc_StopSignal(t *testing.T) {
 	t.Logf("stopSignal: %#v", stopSignal)
 	t.Logf("mockStopSignal: %#v", mockStopSignal)
 	t.Logf("structStopSignal: %#v", structStopSignal)
+	t.Logf("T1.Type(): %#v", T1{}.Type())
+	t.Logf("T2.Type(): %#v", T2{}.Type())
 
 	if mockStopSignal == interface{}(stopSignal) ||
-		structStopSignal == interface{}(stopSignal) {
+		structStopSignal == interface{}(stopSignal) ||
+		(T1{}.Type()) == (T2{}.Type()) {
 		t.Errorf("stopSignal isn't unique.")
 	}
 }

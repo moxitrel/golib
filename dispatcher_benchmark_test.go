@@ -1,7 +1,6 @@
 package golib
 
 import (
-	"github.com/moxitrel/golib/svc"
 	"math"
 	"math/rand"
 	"reflect"
@@ -9,15 +8,26 @@ import (
 	"testing"
 )
 
-func BenchmarkDispatchKey_ReflectTypeOf(b *testing.B) {
-	o := svc.NewFunc(math.MaxInt16, func(i interface{}) {
+type DispatchKeyTypedef struct{}
 
-	})
+func (DispatchKeyTypedef) DispatchKey() interface{} {
+	type T struct{}
+	return T{}
+}
+
+type DispatchKeyReflect struct{}
+
+func (o DispatchKeyReflect) DispatchKey() interface{} {
+	return reflect.TypeOf(o)
+}
+func BenchmarkDispatchKey_Typedef(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		o.Call(reflect.TypeOf(struct {
-			x int64
-			y int64
-		}{}))
+		DispatchKeyTypedef{}.DispatchKey()
+	}
+}
+func BenchmarkDispatchKey_ReflectTypeOf(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		DispatchKeyReflect{}.DispatchKey()
 	}
 }
 
@@ -28,7 +38,7 @@ func BenchmarkFunCall_Reflect(b *testing.B) {
 		o.Call([]reflect.Value{reflect.ValueOf(0)})
 	}
 }
-func BenchmarkFunCall_MapDispatch(b *testing.B) {
+func BenchmarkFunCall_MapDispatcher(b *testing.B) {
 	o := new(MapDispatcher)
 	o.Set(9, func(interface{}) {})
 
@@ -47,7 +57,7 @@ func BenchmarkFunCall_Map(b *testing.B) {
 		o[n].(func())()
 	}
 }
-func BenchmarkFunCall_ArrayDispatch(b *testing.B) {
+func BenchmarkFunCall_ArrayDispatcher(b *testing.B) {
 	o := NewArrayDispatcher(uintptr(1 + rand.Intn(math.MaxInt8)))
 	n := o.Add(func(i interface{}) {})
 
