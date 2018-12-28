@@ -1,7 +1,14 @@
+/*
+
+NewLoop do: *Loop
+	.Stop
+	.Wait
+	.State: Int
+
+*/
 package svc
 
 import (
-	"github.com/moxitrel/golib"
 	"sync"
 )
 
@@ -11,10 +18,8 @@ type Loop struct {
 }
 
 // Loop running thunk() in a new goroutine.
+// If thunk is nil, stop immediately.
 func NewLoop(thunk func()) (o *Loop) {
-	if thunk == nil {
-		golib.Panic("thunk == nil, want !nil")
-	}
 	o = new(Loop)
 	o.wg.Add(1)
 	o.Svc = NewSvc(
@@ -24,7 +29,7 @@ func NewLoop(thunk func()) (o *Loop) {
 	return
 }
 
-// Block current goroutine until stopped.
+// Block current goroutine until Loop stopped.
 func (o *Loop) Wait() {
 	o.wg.Wait()
 }

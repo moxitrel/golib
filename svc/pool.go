@@ -1,3 +1,13 @@
+/*
+
+NewPool min max delay timeout bufferSize fun: *Pool
+	.Stop
+	.Wait
+	.Call       arg
+	.SetTimeout delay idle
+	.SetCount   min   max
+
+*/
 package svc
 
 import (
@@ -9,37 +19,12 @@ import (
 	"time"
 )
 
-// Wrap time.Timer
-type Timer struct {
-	*time.Timer
-}
-
-func NewTimer() (o Timer) {
-	o = Timer{
-		Timer: time.NewTimer(time.Minute),
-	}
-	o.Stop()
-	return
-}
-func (o Timer) Start(timeout time.Duration) {
-	o.Reset(timeout)
-}
-func (o Timer) Stop() {
-	if !o.Timer.Stop() {
-		<-o.C
-	}
-}
-
-const (
-	_POOL_WORKER_DELAY = 200 * time.Millisecond
-
-	// time to wait for receiving sent args when receive stop signal
-	_STOP_DELAY = 200 * time.Millisecond
-)
-
 // Start [min, max] goroutines of <Pool.fun> to process <Pool.arg>
 type Pool struct {
-	// put in first to make fields 64-bit aligned
+	//
+	// make fields 64-bit aligned, put in first
+	//
+
 	// the current number of workers
 	cur int64
 	// how many Call() blocked when delay > 0
@@ -95,8 +80,8 @@ func (o *Pool) getMin() int64 {
 func (o *Pool) getMax() int64 {
 	return int64(atomic.LoadInt32(&o.max))
 }
-func (o *Pool) getFreeCount() int32 {
-	return atomic.LoadInt32(&o.freeCount)
+func (o *Pool) getFreeCount() int64 {
+	return int64(atomic.LoadInt32(&o.freeCount))
 }
 func (o *Pool) incFreeCount() int64 {
 	return int64(atomic.AddInt32(&o.freeCount, 1))
@@ -116,11 +101,11 @@ func (o *Pool) decBlockCount() int64 {
 func (o *Pool) getDelay() time.Duration {
 	return time.Duration(atomic.LoadInt64((*int64)(&o.delay)))
 }
-func (o *Pool) getLife() int32 {
-	return atomic.LoadInt32(&o.life)
+func (o *Pool) getLife() int64 {
+	return int64(atomic.LoadInt32(&o.life))
 }
-func (o *Pool) getMaxSignal() int32 {
-	return atomic.LoadInt32(&o.maxSignal)
+func (o *Pool) getMaxSignal() int64 {
+	return int64(atomic.LoadInt32(&o.maxSignal))
 }
 
 func NewPool(min, max uint, delay, timeout time.Duration, bufferSize uint, fun func(interface{})) (o *Pool) {
@@ -132,21 +117,22 @@ func NewPool(min, max uint, delay, timeout time.Duration, bufferSize uint, fun f
 	}
 
 	o = &Pool{
-		//cur:       0,
-		//freeCount: 0,
+		//cur:       	0,
+		//blockCount:	0,
+		//delay:     	.SetTimeout(),
+		//idle:  		.SetTimeout(),
 
-		//min:       int32(min),
-		//max:       int32(max),
+		//min:       	.SetCount(),
+		//max:       	.SetCount(),
+		//freeCount: 	0,
 
 		fun: fun,
 		arg: make(chan interface{}, bufferSize),
 
-		//delay:     	delay,
-		//idle:   		idle,
-		//idleTicker: 	nil,
-		//delayTicker:	nil,
-		maxSignal: math.MaxInt16, // default max number of signals to send per tick
+		//idleTicker: 	.SetTimeout(),
+		//delayTicker:	.SetTimeout(),
 		life:      2,             // default life
+		maxSignal: math.MaxInt16, // default max number of signals to send per tick
 
 		//curLock:  sync.Mutex{},
 		//stopOnce: sync.Once{},
@@ -160,7 +146,7 @@ func NewPool(min, max uint, delay, timeout time.Duration, bufferSize uint, fun f
 }
 
 func PoolWrapper(fun func(interface{})) (func(interface{}), func()) {
-	v := NewPool(uint(runtime.NumCPU()+1), 1<<23, 0, 2*time.Minute, 1<<19, fun)
+	v := NewPool(uint(runtime.NumCPU()+1), 1<<23, 0, 10*time.Minute, 1<<20, fun)
 	return v.Call, v.Stop
 }
 
@@ -182,7 +168,7 @@ func (o *Pool) newProcess() {
 	//		}
 	//
 	if o.incCur() > o.getMax() &&
-		o.decCur() >= o.getMax() { // detect the changes of o.cur in the gap
+		o.decCur() >= o.getMax() { // detect the changes of o.cur between the interval
 		return
 	}
 
@@ -267,16 +253,16 @@ CALL:
 	switch {
 	case o.getMax() <= 0: // stopped?
 		// nop
+	case o.getCur() >= o.getMax():
+		o.arg <- arg
 	case o.getDelay() > 0:
 		o.incBlockCount()
 		o.arg <- arg
 		o.decBlockCount()
-	case o.getCur() >= o.getMax():
-		o.arg <- arg
 	default:
 		select {
 		case o.arg <- arg:
-			if o.getFreeCount() < int32(len(o.arg)) {
+			if o.getFreeCount() < int64(len(o.arg)) {
 				o.newProcess()
 			}
 		default:
@@ -288,7 +274,7 @@ CALL:
 
 // Change when to create or kill a goroutine.
 // A new goroutine will be created after the argument blocked for <delay> ns.
-// A goroutine will be killed after idle for <idle> ns
+// A goroutine will be killed after idle for <idle> ns.
 func (o *Pool) SetTimeout(delay time.Duration, idle time.Duration) {
 	if delay < 0 {
 		golib.Panic("delay:%v < 0, want >= 0", delay)
@@ -299,35 +285,11 @@ func (o *Pool) SetTimeout(delay time.Duration, idle time.Duration) {
 	atomic.StoreInt64((*int64)(&o.delay), delay.Nanoseconds())
 	atomic.StoreInt64((*int64)(&o.idle), idle.Nanoseconds())
 
-	// init idle-ticker
-	if o.idleTicker != nil {
-		o.idleTicker.Stop()
-	}
-	if o.idle < math.MaxInt64 {
-		timeoutTicker := time.NewTicker(o.idle)
-		o.wg.Add(1)
-		o.idleTicker = NewSvc(nil, func() {
-			o.wg.Done()
-			timeoutTicker.Stop()
-		}, func() {
-			<-timeoutTicker.C
-
-			// stop idle workers
-			n := o.getFreeCount()
-			if maxSignal := o.getMaxSignal(); n > maxSignal {
-				n = maxSignal
-			}
-			for ; n > 0; n-- {
-				select {
-				case o.arg <- timeoutSignal:
-				default:
-					return
-				}
-			}
-		})
-	}
-
+	//
 	// init delay-ticker
+	//
+
+	// clean former ticker
 	if o.delayTicker != nil {
 		o.delayTicker.Stop()
 	}
@@ -340,6 +302,7 @@ func (o *Pool) SetTimeout(delay time.Duration, idle time.Duration) {
 		}, func() {
 			<-delayTicker.C
 
+			// create new workers
 			avaliableWorkers := o.getMax() - o.getCur()
 			if avaliableWorkers <= 0 {
 				return
@@ -351,14 +314,44 @@ func (o *Pool) SetTimeout(delay time.Duration, idle time.Duration) {
 			if jobs > avaliableWorkers {
 				jobs = avaliableWorkers
 			}
-			if maxSignal := int64(o.getMaxSignal()); jobs > maxSignal {
-				jobs = maxSignal
+			if jobs > o.getMaxSignal() {
+				jobs = o.getMaxSignal()
 			}
 			for ; jobs > 0; jobs-- {
 				o.newProcess()
 			}
 		})
 	}
+
+	//
+	// init idle-ticker
+	//
+
+	// clean former ticker
+	if o.idleTicker != nil {
+		o.idleTicker.Stop()
+	}
+	timeoutTicker := time.NewTicker(o.idle)
+	o.wg.Add(1)
+	o.idleTicker = NewSvc(nil, func() {
+		o.wg.Done()
+		timeoutTicker.Stop()
+	}, func() {
+		<-timeoutTicker.C
+
+		// stop idle workers
+		n := o.getFreeCount()
+		if n > o.getMaxSignal() {
+			n = o.getMaxSignal()
+		}
+		for ; n > 0; n-- {
+			select {
+			case o.arg <- timeoutSignal:
+			default:
+				return
+			}
+		}
+	})
 }
 
 // Change how many goroutines Pool can create.
