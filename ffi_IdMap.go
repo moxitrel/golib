@@ -18,7 +18,7 @@ type IdMap struct {
 
 func NewIdMap() *IdMap {
 	o := new(IdMap)
-	o.Store(0, nil)
+	o.Store(0, nil) // map nil to 0
 	return o
 }
 
@@ -34,6 +34,7 @@ func (o *IdMap) Add(ptr interface{}) (id uintptr) {
 	return
 }
 
+// Return nil if id not exist.
 func (o *IdMap) Get(id uintptr) interface{} {
 	val, _ := o.Load(id)
 	return val
