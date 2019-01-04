@@ -90,24 +90,20 @@ func (o *Func) Call(arg interface{}) {
 //
 // Wrap time.Timer
 //
-type Timer struct {
-	*time.Timer
-}
+type Timer time.Timer
 
-func NewTimer() (o Timer) {
-	o = Timer{
-		Timer: time.NewTimer(time.Second),
-	}
+func NewTimer() (o *Timer) {
+	o = (*Timer)(time.NewTimer(time.Second))
 	o.Stop()
 	return
 }
 
-func (o Timer) Start(timeout time.Duration) {
-	o.Reset(timeout)
+func (o *Timer) Start(timeout time.Duration) {
+	(*time.Timer)(o).Reset(timeout)
 }
 
-func (o Timer) Stop() {
-	if !o.Timer.Stop() {
+func (o *Timer) Stop() {
+	if !(*time.Timer)(o).Stop() {
 		<-o.C
 	}
 }
