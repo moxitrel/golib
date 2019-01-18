@@ -1,4 +1,4 @@
-package svc
+package gosvc
 
 import (
 	"testing"
@@ -39,7 +39,7 @@ func benchmarkPoolPerf_Func(b *testing.B, n int) {
 	}
 }
 func benchmarkPoolPerf_Pool(b *testing.B, n int) {
-	o := NewPool(1, 1, 0, time.Minute, uint(n), func(interface{}) {})
+	o := NewPool(1, 1,  time.Minute, uint(n), func(interface{}) {})
 	call := o.Call
 
 	b.ResetTimer()
@@ -96,4 +96,43 @@ func BenchmarkPoolPerf_Func_65536(b *testing.B) {
 func BenchmarkPoolPerf_Loop_65536(b *testing.B) {
 	benchmarkPoolPerf_Loop(b, 65536)
 
+}
+
+//
+//
+//
+
+const (
+	RunTimes      = 1000000
+	benchParam    = 10
+	benchAntsSize = 200000
+)
+
+func demoFunc() {
+	n := 10
+	time.Sleep(time.Duration(n) * time.Millisecond)
+}
+
+func demoPoolFunc(args interface{}) {
+	//m := args.(int)
+	//var n int
+	//for i := 0; i < m; i++ {
+	//	n += i
+	//}
+	//return nil
+	n := args.(int)
+	time.Sleep(time.Duration(n) * time.Millisecond)
+}
+
+func BenchmarkAnt_Goroutine(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		go demoPoolFunc(benchAntsSize)
+	}
+}
+
+func BenchmarkAnt_Pool(b *testing.B) {
+	o := NewPool(1, benchAntsSize,  0, benchAntsSize, demoPoolFunc)
+	for i := 0; i < b.N; i++ {
+		o.Call(benchParam)
+	}
 }

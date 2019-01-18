@@ -1,4 +1,4 @@
-package svc
+package gosvc
 
 import (
 	"container/ring"

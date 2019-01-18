@@ -1,4 +1,4 @@
-package svc
+package gosvc
 
 import (
 	"math"
@@ -74,8 +74,8 @@ func TestPool_Stop(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	min := rand.Intn(8000)
 	timeout := time.Second + time.Duration(rand.Int31())
-	o := NewPool(uint(min), uint(min), 200*time.Millisecond, timeout, 0, func(interface{}) {})
-	t.Logf("ngo: %v", runtime.NumGoroutine()-ngo0)
+	o := NewPool(uint(min), uint(min),  timeout, 0, func(interface{}) {})
+	t.Logf("ngo / min: %v / %v", runtime.NumGoroutine()-ngo0, min)
 
 	// stop pool
 	t1 := time.Now()
@@ -83,7 +83,7 @@ func TestPool_Stop(t *testing.T) {
 	o.Wait()
 	t2 := time.Now()
 	t.Logf("join / idle : %v / %v", t2.Sub(t1), timeout)
-	time.Sleep(_STOP_DELAY)
+	//time.Sleep(_POOL_STOP_DELAY)
 
 	// check the number of goroutine
 	if d := runtime.NumGoroutine() - ngo0; d > 0 {
@@ -96,11 +96,11 @@ func TestPool_Stop(t *testing.T) {
 }
 
 func TestPool_Call_NoDelay(t *testing.T) {
-	t.Skipf("need fix: .Call() may start more than 1 worker")
+	t.Skipf(".Call() may start more than 1 worker")
 	// goroutine number at start
 	ngo0 := runtime.NumGoroutine()
 
-	o := NewPool(0, math.MaxUint8, 0, time.Hour, 0, func(interface{}) {})
+	o := NewPool(0, math.MaxUint8, time.Hour, 0, func(interface{}) {})
 	o.Call(nil)
 
 	// check

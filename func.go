@@ -1,23 +1,16 @@
 /*
 
-NewFunc size fun: *Func
-	.Stop
-	.Wait
-	.Call arg
-	.State: Int
+NewFunc size fun -> *Func : loop processing fun(arg) in a new goroutine
+	.Stop			: signal the service to stop
+	.Wait			: wait until stopped
+	.Call arg		: send ^arg to service to process
+	.State -> Int	: return the current running state
 
 */
-
-package svc
+package gosvc
 
 import (
-	"github.com/moxitrel/golib"
 	"time"
-)
-
-const (
-	// time to wait for receiving sent args when receive stop signal
-	_STOP_DELAY = 200 * time.Millisecond
 )
 
 type Func struct {
@@ -25,16 +18,20 @@ type Func struct {
 	args chan interface{} // argument buffer
 }
 
-type _StopSignal struct{}
+// time to wait for sent args when received stop-signal
+const _FUNC_STOP_DELAY = 200 * time.Millisecond
 
-var stopSignal = _StopSignal{}
+type _FuncStopSignal struct{}
+
+var funcStopSignal = _FuncStopSignal{}
 
 // Loop running fun(arg) in a new goroutine.
+//
 // argsCap: the max number of argument can be buffered.
 // fun: panic if nil.
 func NewFunc(argsCap uint, fun func(interface{})) (o *Func) {
 	if fun == nil {
-		golib.Panic("fun == nil, want !nil")
+		panic("fun == nil, want !nil")
 	}
 
 	o = &Func{
@@ -44,14 +41,14 @@ func NewFunc(argsCap uint, fun func(interface{})) (o *Func) {
 		var arg interface{}
 		for arg = range o.args {
 			switch arg {
-			case stopSignal:
-				goto handleStop
+			case funcStopSignal:
+				goto HANDLE_STOP
 			default:
 				fun(arg)
 			}
 		}
 
-	handleStop:
+	HANDLE_STOP:
 		o.Loop.Stop()
 		stopTimer := NewTimer()
 		// continue to handle delivered args when .Stop(), or client may be blocked
@@ -59,51 +56,34 @@ func NewFunc(argsCap uint, fun func(interface{})) (o *Func) {
 			select {
 			case arg = <-o.args:
 			default:
-				stopTimer.Start(_STOP_DELAY)
+				stopTimer.Start(_FUNC_STOP_DELAY)
 				select {
 				case arg = <-o.args:
-					stopTimer.Stop()
 				case <-stopTimer.C: // quit if timeout
-					return
+					goto HANDLE_STOP_END
 				}
+				stopTimer.Stop()
 			}
-			if arg != stopSignal {
+
+			if arg != funcStopSignal {
 				fun(arg)
 			}
 		}
+	HANDLE_STOP_END:
 	})
 	return
 }
 
+// Signal service to exit. May not stop immediately.
 func (o *Func) Stop() {
-	if o.State() != STOPPED {
-		o.args <- stopSignal
+	if o.State() != ST_STOPPED {
+		o.args <- funcStopSignal
 	}
 }
 
+// Send ^arg to process
 func (o *Func) Call(arg interface{}) {
-	if o.State() != STOPPED {
+	if o.State() == ST_RUNNING {
 		o.args <- arg
-	}
-}
-
-//
-// Wrap time.Timer
-//
-type Timer time.Timer
-
-func NewTimer() (o *Timer) {
-	o = (*Timer)(time.NewTimer(time.Second))
-	o.Stop()
-	return
-}
-
-func (o *Timer) Start(timeout time.Duration) {
-	(*time.Timer)(o).Reset(timeout)
-}
-
-func (o *Timer) Stop() {
-	if !(*time.Timer)(o).Stop() {
-		<-o.C
 	}
 }

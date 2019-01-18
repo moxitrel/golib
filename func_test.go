@@ -1,4 +1,4 @@
-package svc
+package gosvc
 
 import (
 	"math"
@@ -20,21 +20,16 @@ func (T2) Type() interface{} {
 	type T struct{}
 	return T{}
 }
+
 func TestFunc_StopSignal(t *testing.T) {
 	type MockStopSignal struct{}
 	mockStopSignal := MockStopSignal{}
 	structStopSignal := struct{}{}
 
-	t.Logf("stopSignal: %#v", stopSignal)
-	t.Logf("mockStopSignal: %#v", mockStopSignal)
-	t.Logf("structStopSignal: %#v", structStopSignal)
-	t.Logf("T1.Type(): %#v", T1{}.Type())
-	t.Logf("T2.Type(): %#v", T2{}.Type())
-
-	if mockStopSignal == interface{}(stopSignal) ||
-		structStopSignal == interface{}(stopSignal) ||
+	if mockStopSignal == interface{}(funcStopSignal) ||
+		structStopSignal == interface{}(funcStopSignal) ||
 		(T1{}.Type()) == (T2{}.Type()) {
-		t.Errorf("stopSignal isn't unique.")
+		t.Errorf("funcStopSignal isn't unique.")
 	}
 }
 
@@ -78,14 +73,16 @@ func TestFunc_CallAfterStop(t *testing.T) {
 	}
 }
 
-func TestFunc_Join(t *testing.T) {
-	o := NewFunc(0, func(i interface{}) {})
+func TestFunc_Wait(t *testing.T) {
+	rand.Seed(time.Now().UnixNano())
+	o := NewFunc(uint(rand.Intn(math.MaxUint16)), func(i interface{}) {})
 	o.Stop()
 	o.Wait()
 }
 
 func TestFunc_DataRace(t *testing.T) {
-	o := NewFunc(0, func(i interface{}) {})
+	rand.Seed(time.Now().UnixNano())
+	o := NewFunc(uint(rand.Intn(math.MaxUint16)), func(i interface{}) {})
 	for i := 0; i < 2; i++ {
 		NewLoop(func() {
 			o.Call(nil)

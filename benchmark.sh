@@ -29,7 +29,7 @@ cmd=" $cmd -run ^$          "   # ignore tests, run benchmarks only
 cmd=" $cmd -benchmem                                        "   # print memory allocation state for benchmarks
 
 # Enable more than one -xxxprofile may skew each other
-#cmd=" $cmd -cpuprofile              cpu.prof                "   # profile cpu
+cmd=" $cmd -cpuprofile              cpu.prof                "   # profile cpu
 #cmd=" $cmd -memprofile              mem.prof                 "   # profile memory
 #cmd=" $cmd -blockprofile            ${OUT:-block.prof}       "   # profile goroutine blocking
 #cmd=" $cmd -mutexprofile            $OUT                    "   # profile mutex
@@ -41,7 +41,7 @@ cmd=" $cmd -outputdir               /tmp                    "   # dir for saving
 cmd=" $cmd -o                       /tmp/benchmark          "   # where to save the compiled binary
 
 # run each test and benchmark $COUNT:1 times
-#cmd=" $cmd -count   $COUNT "
+cmd=" $cmd -count   ${COUNT:-5} "
 # run no longer than $TIMEOUT:10m
 # 0: the timeout is disabled
 # the default is 10 minutes (10m)

@@ -6,10 +6,9 @@ func (*MapOnTime) Delete	(*Task)
 func (*MapOnTime) At    	(time.MapOnTime,     func()) 	*Task
 func (*MapOnTime) Every 	(time.Duration, func()) 	*Task
 */
-package svc
+package gosvc
 
 import (
-	"github.com/moxitrel/golib"
 	"math"
 	"sync"
 	"sync/atomic"
@@ -43,7 +42,7 @@ type MapOnTime struct {
 // 		 https://github.com/golang/go/issues/25471
 func NewMapOnTime(accuracy time.Duration) (o *MapOnTime) {
 	if accuracy <= 0 {
-		golib.Panic("accuracy <= 0, want > 0")
+		panic("NewMapOnTime: accuracy <= 0, want > 0")
 	}
 	o = &MapOnTime{
 		accuracy: accuracy,
@@ -111,7 +110,7 @@ func NewMapOnTime(accuracy time.Duration) (o *MapOnTime) {
 func (o *MapOnTime) _addTask(task *Task) {
 	taskLen := atomic.AddUint64(&o.taskLen, 1)
 	if taskLen == 0 {
-		golib.Panic("taskLen overflow, too many adding")
+		panic("taskLen overflow, too many adding")
 	}
 	o.tasks.Store(taskLen-1, task)
 }
@@ -127,8 +126,8 @@ func (o *MapOnTime) Delete(task *Task) {
 // If future is before now, run at next check
 func (o *MapOnTime) At(future time.Time, do func()) (v *Task) {
 	if do == nil {
-		golib.Warn("do == nil, ignored")
-		return nil
+		panic("do == nil, ignored")
+		//return nil
 	}
 	v = taskPool.Get().(*Task)
 	v.do = do
@@ -141,8 +140,8 @@ func (o *MapOnTime) At(future time.Time, do func()) (v *Task) {
 // require interval < (|math.MinInt64| / 2), 146y
 func (o *MapOnTime) Every(interval time.Duration, do func()) (v *Task) {
 	if do == nil {
-		golib.Warn("do == nil, ignored")
-		return nil
+		panic("do == nil, ignored")
+		//return nil
 	}
 	if interval < o.accuracy {
 		interval = o.accuracy
