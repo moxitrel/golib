@@ -2,20 +2,19 @@ package gosvc
 
 import "time"
 
-// Wrap time.Timer
+// Wrap time.Timer to simplify the usage
 //
 // * Example
-//
 // timer := NewTimer()
 //
-// timer.Start(x)		// call .Start() at begin
+// timer.Start(x)		// call .Start() at beginning
 // select {
 // case c <- nil :
-// 		not timeout
+// 		// not timeout
 // case <-c      :
-// 		not timeout
+// 		// not timeout
 // case <-timer.C:
-// 		timeout
+// 		// timeout
 // }
 // timer.Stop()			// call .Stop() at end
 //

@@ -1,0 +1,20 @@
+*** Timer
+A wrapper for time.Timer to simplify the usage.
+#+BEGIN_SRC go
+timer := NewTimer()         // make a new timer
+
+timer.Start(time.Minute)    // call .Start() at beginning
+select {
+case c <- nil :
+    // not timeout
+case <-c      :
+    // not timeout
+case <-timer.C:
+    // timeout
+}
+timer.Stop()                // call .Stop() at the end
+#+END_SRC go
+
+* See also
+[[https://github.com/panjf2000/ants][ants]]
+[[https://zhuanlan.zhihu.com/p/37754274][Go并发调度器解析之实现一个协程池]]

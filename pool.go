@@ -177,7 +177,6 @@ func (o *Pool) newWorker() {
 					//			o.curLock.Unlock()
 					//			return
 					//		}
-					//
 					switch {
 					case o.decCur() >= o.getMin():
 						return
@@ -244,7 +243,7 @@ CALL:
 	}
 }
 
-// Change when to create or kill a goroutine.
+// Change when to kill a goroutine.
 // A goroutine will be killed after idle for <idle> ns.
 // idle: idle forever if <= 0
 func (o *Pool) setTimeout(idle time.Duration) {
