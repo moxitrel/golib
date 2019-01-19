@@ -7,6 +7,10 @@ NewPool min max delay timeout bufferSize fun -> *Pool
 	.setTimeout delay idle
 	.setCount   min   max
 
+
+* See also
+- Go并发调度器解析之实现一个协程池: https://zhuanlan.zhihu.com/p/37754274
+
 */
 package gosvc
 

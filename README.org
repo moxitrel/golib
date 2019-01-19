@@ -1,14 +1,15 @@
 *** Pool
-A high-performance goroutine pool.
+A goroutine pool.
 #+BEGIN_SRC go
 import "github.com/moxitrel/gosvc"
 
 // make a new goroutine pool
 pool := gosvc.NewPool(
-    /* min     */ 3,                // at least 3 workers will be live all the time
-    /* max     */ 100,              // at most 100 workers can be generated
-    /* timeout */ 10 * time.Minute, // kill the goroutines idle for 10 minutes
+    /* min     */ 3,                    // at least 3 workers will be live all the time
+    /* max     */ 100,                  // at most 100 workers can be generated
+    /* timeout */ 10 * time.Minute,     // kill the workers which idle for 10 minutes
     /* func    */ func(arg interface{}) {
+        // do the task
         time.Sleep(time.Second)
     })
 
@@ -49,5 +50,4 @@ timer.Stop()                // call .Stop() at the end
 #+END_SRC go
 
 * See also
-- [[https://github.com/panjf2000/ants][ants]]
-- [[https://zhuanlan.zhihu.com/p/37754274][Go并发调度器解析之实现一个协程池]]
+- [[https://github.com/panjf2000/ants][ants]]: a high-performance goroutine pool.
