@@ -38,8 +38,8 @@ func benchmarkPoolPerf_Func(b *testing.B, n int) {
 		o.Call(nil)
 	}
 }
-func benchmarkPoolPerf_Pool(b *testing.B, n int) {
-	o := NewPool(1, 1,  time.Minute, uint(n), func(interface{}) {})
+func benchmarkPoolPerf_Pool(b *testing.B, n uint) {
+	o := NewPool(1, n, time.Minute, func(interface{}) {})
 	call := o.Call
 
 	b.ResetTimer()
@@ -48,15 +48,6 @@ func benchmarkPoolPerf_Pool(b *testing.B, n int) {
 	}
 }
 
-func BenchmarkPoolPerf_Pool_0(b *testing.B) {
-	benchmarkPoolPerf_Pool(b, 0)
-}
-func BenchmarkPoolPerf_Func_0(b *testing.B) {
-	benchmarkPoolPerf_Func(b, 0)
-}
-func BenchmarkPoolPerf_Loop_0(b *testing.B) {
-	benchmarkPoolPerf_Loop(b, 0)
-}
 func BenchmarkPoolPerf_Pool_1(b *testing.B) {
 	benchmarkPoolPerf_Pool(b, 1)
 }

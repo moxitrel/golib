@@ -62,6 +62,7 @@ func BenchmarkSvc_SwitchTest(b *testing.B) {
 	DO_EXIT:
 	}
 }
+
 func BenchmarkSvc_NoTest(b *testing.B) {
 	do := func() {}
 

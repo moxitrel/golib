@@ -13,7 +13,6 @@ package gosvc
 import (
 	"fmt"
 	"math"
-	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -91,7 +90,7 @@ func (o *Pool) getDefaultLife() int32 {
 	return atomic.LoadInt32(&o.defaultLife)
 }
 
-func NewPool(min, max uint, timeout time.Duration, bufferSize uint, fun func(interface{})) (o *Pool) {
+func NewPool(min, max uint, timeout time.Duration, fun func(interface{})) (o *Pool) {
 	//if bufferSize > math.MaxInt32 {
 	//	panic(fmt.Sprintf("bufferSize:%v > math.MaxInt32, want <= math.MaxInt32", max))
 	//}
@@ -106,7 +105,7 @@ func NewPool(min, max uint, timeout time.Duration, bufferSize uint, fun func(int
 		//freeCount: 	0,
 
 		fun: fun,
-		arg: make(chan interface{}, bufferSize),
+		arg: make(chan interface{}, max),
 
 		//idle:  		.setTimeout(),
 		//idleTicker: 	.setTimeout(),
@@ -123,11 +122,6 @@ func NewPool(min, max uint, timeout time.Duration, bufferSize uint, fun func(int
 	// init idle, idleTicker
 	o.setTimeout(timeout)
 	return
-}
-
-func PoolWrapper(fun func(interface{})) (func(interface{}), func()) {
-	v := NewPool(uint(runtime.NumCPU()+1), 1<<23,  10*time.Minute, 1<<20, fun)
-	return v.Call, v.Stop
 }
 
 // Create a new worker goroutine.
@@ -224,7 +218,6 @@ func (o *Pool) Wait() {
 	o.wg.Wait()
 }
 
-
 func (o *Pool) Call(arg interface{}) {
 CALL:
 	switch {
@@ -235,6 +228,9 @@ CALL:
 	default:
 		select {
 		case o.arg <- arg:
+			if o.getFreeCount() <= 0 { // NOTE: the check isn't robust
+				o.newWorker()
+			}
 		default:
 			// NOTE: Call() may create more than 1 worker
 			o.newWorker()

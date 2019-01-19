@@ -74,7 +74,7 @@ func TestPool_Stop(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	min := rand.Intn(8000)
 	timeout := time.Second + time.Duration(rand.Int31())
-	o := NewPool(uint(min), uint(min),  timeout, 0, func(interface{}) {})
+	o := NewPool(uint(min), uint(min), timeout, func(interface{}) {})
 	t.Logf("ngo / min: %v / %v", runtime.NumGoroutine()-ngo0, min)
 
 	// stop pool
@@ -100,7 +100,7 @@ func TestPool_Call_NoDelay(t *testing.T) {
 	// goroutine number at start
 	ngo0 := runtime.NumGoroutine()
 
-	o := NewPool(0, math.MaxUint8, time.Hour, 0, func(interface{}) {})
+	o := NewPool(0, math.MaxUint8, time.Hour, func(interface{}) {})
 	o.Call(nil)
 
 	// check
