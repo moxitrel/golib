@@ -32,7 +32,7 @@ func benchmarkPoolPerf_Loop(b *testing.B, n int) {
 	}
 }
 func benchmarkPoolPerf_Func(b *testing.B, n int) {
-	o := NewFunc(uint(n), func(interface{}) {})
+	o := NewApply(uint(n), func(interface{}) {})
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		o.Call(nil)

@@ -12,18 +12,18 @@ import (
 	"sync/atomic"
 )
 
-// Svc.state, service state
+// Extend goroutine with state reference.
+type Svc struct {
+	state int32
+}
+
+// Svc.state
 const (
 	ST_NIL = iota
 	ST_RUNNING
 	ST_STOPPED
 	ST_NA // not available
 )
-
-// Extend goroutine with state support.
-type Svc struct {
-	state int32
-}
 
 // Start a new goroutine loop running do().
 //
@@ -54,7 +54,7 @@ func NewSvc(pre func(), post func(), do func()) (o *Svc) {
 				case ST_STOPPED:
 					goto DO_END
 				default:
-					panic(fmt.Sprintf("state:%v isn't valid.", o.State()))
+					panic(fmt.Errorf("state:%v isn't valid.", o.State()))
 				}
 			}
 		DO_END:

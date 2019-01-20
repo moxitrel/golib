@@ -1,6 +1,6 @@
 /*
 
-NewFunc size fun -> *Func : loop processing fun(arg) in a new goroutine
+NewApply size fun -> *Apply : loop processing fun(arg) in a new goroutine
 	.Stop			: signal the service to stop
 	.Wait			: wait until stopped
 	.Call arg		: send ^arg to service to process
@@ -10,10 +10,11 @@ NewFunc size fun -> *Func : loop processing fun(arg) in a new goroutine
 package gosvc
 
 import (
+	"fmt"
 	"time"
 )
 
-type Func struct {
+type Apply struct {
 	*Loop
 	args chan interface{} // argument buffer
 }
@@ -29,12 +30,12 @@ var funcStopSignal = _FuncStopSignal{}
 //
 // argsCap: the max number of argument can be buffered.
 // fun: panic if nil.
-func NewFunc(argsCap uint, fun func(interface{})) (o *Func) {
+func NewApply(argsCap uint, fun func(interface{})) (o *Apply) {
 	if fun == nil {
-		panic("fun == nil, want !nil")
+		panic(fmt.Errorf("fun == nil, want !nil"))
 	}
 
-	o = &Func{
+	o = &Apply{
 		args: make(chan interface{}, argsCap),
 	}
 	o.Loop = NewLoop(func() {
@@ -60,7 +61,7 @@ func NewFunc(argsCap uint, fun func(interface{})) (o *Func) {
 				select {
 				case arg = <-o.args:
 				case <-stopTimer.C: // quit if timeout
-					goto HANDLE_STOP_END
+					return
 				}
 				stopTimer.Stop()
 			}
@@ -69,20 +70,19 @@ func NewFunc(argsCap uint, fun func(interface{})) (o *Func) {
 				fun(arg)
 			}
 		}
-	HANDLE_STOP_END:
 	})
 	return
 }
 
 // Signal service to exit. May not stop immediately.
-func (o *Func) Stop() {
+func (o *Apply) Stop() {
 	if o.State() != ST_STOPPED {
 		o.args <- funcStopSignal
 	}
 }
 
 // Send ^arg to process
-func (o *Func) Call(arg interface{}) {
+func (o *Apply) Call(arg interface{}) {
 	if o.State() == ST_RUNNING {
 		o.args <- arg
 	}

@@ -37,7 +37,7 @@ func TestFunc_New(t *testing.T) {
 	var x = 0
 	signalBegin := make(chan struct{})
 	signalEnd := make(chan struct{})
-	o := NewFunc(math.MaxUint16, func(arg interface{}) {
+	o := NewApply(math.MaxUint16, func(arg interface{}) {
 		signalBegin <- struct{}{}
 		x = arg.(int)
 		signalEnd <- struct{}{}
@@ -60,7 +60,7 @@ func TestFunc_New(t *testing.T) {
 func TestFunc_CallAfterStop(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	x := 0
-	o := NewFunc(uint(rand.Intn(math.MaxInt16)), func(arg interface{}) {
+	o := NewApply(uint(rand.Intn(math.MaxInt16)), func(arg interface{}) {
 		x = arg.(int)
 	})
 	o.Stop()
@@ -75,14 +75,14 @@ func TestFunc_CallAfterStop(t *testing.T) {
 
 func TestFunc_Wait(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
-	o := NewFunc(uint(rand.Intn(math.MaxUint16)), func(i interface{}) {})
+	o := NewApply(uint(rand.Intn(math.MaxUint16)), func(i interface{}) {})
 	o.Stop()
 	o.Wait()
 }
 
 func TestFunc_DataRace(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
-	o := NewFunc(uint(rand.Intn(math.MaxUint16)), func(i interface{}) {})
+	o := NewApply(uint(rand.Intn(math.MaxUint16)), func(i interface{}) {})
 	for i := 0; i < 2; i++ {
 		NewLoop(func() {
 			o.Call(nil)

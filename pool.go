@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-// Start [min, max] goroutines of <Pool.fun> to process <Pool.arg>
+// Start [min, max] goroutines of <Pool.fun> to process args in <Pool.arg>
 type Pool struct {
 	//
 	// make Pool 64-bit aligned, put fields 64-bit long in first
@@ -45,7 +45,7 @@ type Pool struct {
 
 	// send timeout-signal to worker periodically
 	idleTicker *Svc
-	// the max number of timeout-signal to sent after a tick
+	// the max number of timeout-signal to sent
 	maxSignal int32
 	// decrease worker's life when timeout-signal received, exit when life <= 0
 	defaultLife int32
@@ -99,7 +99,7 @@ func NewPool(min, max uint, timeout time.Duration, fun func(interface{})) (o *Po
 	//	panic(fmt.Sprintf("bufferSize:%v > math.MaxInt32, want <= math.MaxInt32", max))
 	//}
 	if fun == nil {
-		panic("fun == nil, want !nil")
+		panic(fmt.Errorf("fun == nil, want !nil"))
 	}
 
 	o = &Pool{
@@ -113,9 +113,8 @@ func NewPool(min, max uint, timeout time.Duration, fun func(interface{})) (o *Po
 
 		//idle:  		.setTimeout(),
 		//idleTicker: 	.setTimeout(),
-
+		maxSignal:   100000,
 		defaultLife: 2,
-		maxSignal:   math.MaxInt16,
 
 		//curLock:  sync.Mutex{},
 		//stopOnce: sync.Once{},
@@ -232,7 +231,7 @@ CALL:
 	default:
 		select {
 		case o.arg <- arg:
-			if o.getFreeCount() <= 0 { // NOTE: the check isn't robust
+			if o.getFreeCount() <= 0 { // NOTE: the check isn't reliable
 				o.newWorker()
 			}
 		default:
@@ -249,17 +248,17 @@ CALL:
 func (o *Pool) setTimeout(idle time.Duration) {
 	atomic.StoreInt64((*int64)(&o.idle), idle.Nanoseconds())
 
-	// clean old ticker
+	// destroy old ticker
 	if o.idleTicker != nil {
 		o.idleTicker.Stop()
 		o.idleTicker = nil
 	}
 	if o.idle > 0 {
-		ticker := time.NewTicker(o.idle)
 		o.wg.Add(1)
+		ticker := time.NewTicker(o.idle)
 		o.idleTicker = NewSvc(nil, func() {
-			o.wg.Done()
 			ticker.Stop()
+			o.wg.Done()
 		}, func() {
 			<-ticker.C
 
@@ -282,19 +281,17 @@ func (o *Pool) setTimeout(idle time.Duration) {
 // Change how many goroutines Pool can create.
 func (o *Pool) setCount(min uint, max uint) {
 	if min > math.MaxInt32 {
-		panic(fmt.Sprintf("min:%v > math.MaxInt32, want <= math.MaxInt32", min))
+		panic(fmt.Errorf("min:%v > math.MaxInt32, want <= math.MaxInt32", min))
 	}
 	if max > math.MaxInt32 {
-		panic(fmt.Sprintf("max:%v > math.MaxInt32, want <= math.MaxInt32", max))
+		panic(fmt.Errorf("max:%v > math.MaxInt32, want <= math.MaxInt32", max))
 	}
 	if min > max {
-		panic(fmt.Sprintf("min:%v > max:%v, want min <= max", min, max))
-		//min = max
+		panic(fmt.Errorf("min:%v > max:%v, want min <= max", min, max))
 	}
 	atomic.StoreInt32(&o.min, int32(min))
 	atomic.StoreInt32(&o.max, int32(max))
-	// if idle is too small, new process may exit quicker than creating.
-	for n := int64(min) - o.getCur(); n > 0; n-- {
+	for n := o.getMin() - o.getCur(); n > 0; n-- {
 		o.newWorker()
 	}
 }
