@@ -6,11 +6,10 @@ func (*OnTime) Delete	(*Task)
 func (*OnTime) At    	(time.OnTime,     func()) 	*Task
 func (*OnTime) Every 	(time.Duration, func()) 	*Task
 */
-package svc
+package gosvc
 
 import (
 	"container/ring"
-	"github.com/moxitrel/golib"
 	"math"
 	"sync"
 	"sync/atomic"
@@ -43,7 +42,7 @@ type OnTime struct {
 // 		 https://github.com/golang/go/issues/25471
 func NewOnTime(accuracy time.Duration) (o *OnTime) {
 	if accuracy <= 0 {
-		golib.Panic("accuracy <= 0, want > 0")
+		panic("NewOnTime: accuracy <= 0, want > 0")
 	}
 	o = &OnTime{
 		accuracy:  accuracy,
@@ -108,8 +107,8 @@ func (o *OnTime) Delete(task *Task) {
 // If future is before now, run at next check
 func (o *OnTime) At(future time.Time, do func()) (v *Task) {
 	if do == nil {
-		golib.Warn("do == nil, ignored")
-		return nil
+		panic("do == nil, ignored")
+		//return nil
 	}
 	v = &Task{
 		do:   do,
@@ -123,8 +122,8 @@ func (o *OnTime) At(future time.Time, do func()) (v *Task) {
 // require interval < (|math.MinInt64| / 2), 146y
 func (o *OnTime) Every(interval time.Duration, do func()) (v *Task) {
 	if do == nil {
-		golib.Warn("do == nil, ignored")
-		return nil
+		panic("do == nil, ignored")
+		//return nil
 	}
 	if interval < o.accuracy {
 		interval = o.accuracy

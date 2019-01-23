@@ -1,0 +1,53 @@
+*** Pool
+A goroutine pool.
+#+BEGIN_SRC go
+import "github.com/moxitrel/gosvc"
+
+// make a new goroutine pool
+pool := gosvc.NewPool(
+    /* min     */ 3,                    // at least 3 workers will be live all the time
+    /* max     */ 100,                  // at most 100 workers can be generated
+    /* timeout */ 10 * time.Minute,     // kill the workers which idle for 10 minutes
+    /* func    */ func(arg interface{}) {
+        // do the task
+        time.Sleep(time.Second)
+    })
+
+// submit tasks
+pool.Call(1)
+pool.Call(2)
+pool.Call(3)
+pool.Call(4)    // a new worker will be created, total 4 workers
+pool.Call(5)    // a new worker will be created, total 5 workers
+
+time.Sleep(11 * time.Minute)
+// 2 workers have been killed because of timeout, 3 left
+
+// signal to stop
+pool.Stop()
+
+// wait until stopped
+pool.Wait()
+#+END_SRC go
+
+*** Timer
+A wrapper for time.Timer to simplify the usage.
+#+BEGIN_SRC go
+import "github.com/moxitrel/gosvc"
+
+timer := gosvc.NewTimer()   // make a new timer
+
+timer.Start(time.Minute)    // call .Start() at beginning
+select {
+case c <- nil :
+    // not timeout
+case <-c      :
+    // not timeout
+case <-timer.C:
+    // timeout
+}
+timer.Stop()                // call .Stop() at the end
+#+END_SRC go
+
+* See also
+- [[https://github.com/panjf2000/ants][ants]]: a high-performance goroutine pool.
