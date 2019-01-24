@@ -1,32 +1,38 @@
 package gosvc
 
-//func TestServeMixin_Serve(t *testing.T) {
-//	listener, err := net.Listen("tcp", ":8080")
-//	if err != nil {
-//		t.Fatalf("%v", err)
-//	}
-//
-//	serv := NewLoop(func() {
-//		t.Logf("%v", ServeMixin{
-//			Listener: listener,
-//		}.Serve(func(conn net.Conn) {
-//			//t.Logf("%v", conn.RemoteAddr())
-//		}))
-//	})
-//
-//	//NewLoop(func() {
-//	//	time.Sleep(100 * time.Millisecond)
-//	//	for {
-//	//		NewLoop(func() {
-//	//			_, err := net.Dial("tcp", "0.0.0.0:8080")
-//	//			if err != nil {
-//	//				t.Logf("%v: %v", time.Now(), err)
-//	//			}
-//	//		})
-//	//	}
-//	//})
-//	time.Sleep(time.Second)
-//	listener.Close()
-//	serv.Stop()
-//	serv.Wait()
-//}
+import (
+	"net"
+	"testing"
+	"time"
+)
+
+func TestServeMixin_Serve(t *testing.T) {
+	listener, err := net.Listen("tcp", ":0")
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	srv := ServeMixin{
+		Listener: listener,
+	}
+	go srv.Serve(func(bytes []byte, conn net.Conn) int {
+		// handle recv bytes
+		return 0
+	})
+
+	NewLoop(func() {
+		for {
+			NewLoop(func() {
+				conn, err := net.Dial("tcp", listener.Addr().String())
+				if err != nil {
+					t.Logf("%v: %v", time.Now(), err)
+					return
+				}
+				logIfError(WriteAll(conn, []byte("hi")))
+			})
+		}
+	})
+	time.Sleep(100 * time.Millisecond)
+	listener.Close()
+}

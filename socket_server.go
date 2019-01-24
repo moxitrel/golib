@@ -9,13 +9,30 @@ import (
 	"time"
 )
 
+/* Example
+
+listener, err := net.Listen("tcp", ":0")
+if err != nil {
+	log.Fatalln(err)
+	return
+}
+
+srv := ServeMixin{
+	Listener: listener,
+}
+go srv.Serve(func(bytes []byte, conn net.Conn) int {
+	// handle recv bytes
+	return 0
+})
+
+*/
 type ServeMixin struct {
 	net.Listener
 
-	Timeout    time.Duration // disconnect when timeout, default 1m
-	BufferSize int
+	Timeout    time.Duration // disconnect client when timeout
+	BufferSize int           // set recv buffer size
 
-	bufferPool sync.Pool
+	bufferPool *sync.Pool // recv buffer
 	handler    *Pool
 }
 
@@ -27,7 +44,7 @@ var gBufferPool = sync.Pool{
 	},
 }
 
-func logError(err error) {
+func logIfError(err error) {
 	if err != nil {
 		log.Println(err)
 	}
@@ -45,17 +62,19 @@ func (o *ServeMixin) Serve(callback func([]byte, net.Conn) int) error {
 	}
 
 	if o.BufferSize == _DEFAULT_BUFFER_SIZE {
-		o.bufferPool = gBufferPool
+		o.bufferPool = &gBufferPool
 	} else {
-		o.bufferPool.New = func() interface{} {
-			return make([]byte, o.BufferSize)
+		o.bufferPool = &sync.Pool{
+			New: func() interface{} {
+				return make([]byte, o.BufferSize)
+			},
 		}
 	}
 
-	o.handler = NewPool(3, 1<<23, 3*time.Minute, func(arg interface{}) {
+	o.handler = NewPool(3, 1<<20, 3*time.Minute, func(arg interface{}) {
 		conn := arg.(net.Conn)
 		defer func() {
-			logError(conn.Close())
+			logIfError(conn.Close())
 		}()
 
 		//
@@ -65,15 +84,23 @@ func (o *ServeMixin) Serve(callback func([]byte, net.Conn) int) error {
 		defer o.bufferPool.Put(buffer)
 
 		for i := 0; 0 <= i && i <= o.BufferSize; {
-			logError(conn.SetReadDeadline(time.Now().Add(o.Timeout)))
+			logIfError(conn.SetReadDeadline(time.Now().Add(o.Timeout)))
 			n, err := conn.Read(buffer[i:])
-			logError(conn.SetReadDeadline(time.Time{}))
+			logIfError(conn.SetReadDeadline(time.Time{}))
 			if n > 0 {
 				i = callback(buffer[:i+n], conn)
 			}
-			if err != nil {
-				logError(err)
+
+			//
+			// handle read error
+			//
+			if err == io.EOF { // connection closed
 				i = -1
+			} else if err, ok := err.(net.Error); ok && err.Timeout() { // timeout
+				i = -1
+			} else {
+				i = -1
+				logIfError(err)
 			}
 		}
 	})
