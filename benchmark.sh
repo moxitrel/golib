@@ -41,7 +41,7 @@ cmd=" $cmd -outputdir               /tmp                    "   # dir for saving
 cmd=" $cmd -o                       /tmp/benchmark          "   # where to save the compiled binary
 
 # run each test and benchmark $COUNT:1 times
-cmd=" $cmd -count   ${COUNT:-5} "
+#cmd=" $cmd -count   ${COUNT:-5} "
 # run no longer than $TIMEOUT:10m
 # 0: the timeout is disabled
 # the default is 10 minutes (10m)

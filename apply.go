@@ -19,9 +19,6 @@ type Apply struct {
 	args chan interface{} // argument buffer
 }
 
-// time to wait for sent args when received stop-signal
-const _FUNC_STOP_DELAY = 200 * time.Millisecond
-
 type _FuncStopSignal struct{}
 
 var funcStopSignal = _FuncStopSignal{}
@@ -57,7 +54,7 @@ func NewApply(argsCap uint, fun func(interface{})) (o *Apply) {
 			select {
 			case arg = <-o.args:
 			default:
-				stopTimer.Start(_FUNC_STOP_DELAY)
+				stopTimer.Start(200 * time.Millisecond)
 				select {
 				case arg = <-o.args:
 				case <-stopTimer.C: // quit if timeout

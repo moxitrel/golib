@@ -11,7 +11,7 @@ import (
 func TestSvc_State(t *testing.T) {
 	o := NewSvc(nil, nil, func() {})
 
-	// state = ST_STOPPED when new
+	// state = ST_RUNNING when created
 	if o.State() != ST_RUNNING {
 		t.Errorf("state != ST_RUNNING")
 	}
@@ -31,8 +31,6 @@ func TestSvc_DataRace(t *testing.T) {
 				o.State()
 			}
 		}()
-	}
-	for i := 0; i < 2; i++ {
 		go func() {
 			for {
 				o.Stop()
