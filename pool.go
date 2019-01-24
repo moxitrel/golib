@@ -7,7 +7,6 @@ NewPool min max delay timeout bufferSize fun -> *Pool
 	.setTimeout delay idle
 	.setCount   min   max
 
-
 * See also
 - Go并发调度器解析之实现一个协程池: https://zhuanlan.zhihu.com/p/37754274
 
@@ -57,8 +56,6 @@ type Pool struct {
 	wg       sync.WaitGroup
 }
 
-const _POOL_STOP_DELAY = 200 * time.Millisecond
-
 type _PoolTimeoutSignal struct{}
 
 var poolTimeoutSignal _PoolTimeoutSignal
@@ -87,17 +84,11 @@ func (o *Pool) incFreeCount() int32 {
 func (o *Pool) decFreeCount() int32 {
 	return atomic.AddInt32(&o.freeCount, -1)
 }
-func (o *Pool) getMaxSignal() int32 {
-	return atomic.LoadInt32(&o.maxSignal)
-}
 func (o *Pool) getDefaultLife() int32 {
 	return atomic.LoadInt32(&o.defaultLife)
 }
 
-func NewPool(min, max uint, timeout time.Duration, fun func(interface{})) (o *Pool) {
-	//if bufferSize > math.MaxInt32 {
-	//	panic(fmt.Sprintf("bufferSize:%v > math.MaxInt32, want <= math.MaxInt32", max))
-	//}
+func NewPool(min, max uint, idleTimeout time.Duration, fun func(interface{})) (o *Pool) {
 	if fun == nil {
 		panic(fmt.Errorf("fun == nil, want !nil"))
 	}
@@ -109,7 +100,7 @@ func NewPool(min, max uint, timeout time.Duration, fun func(interface{})) (o *Po
 		//freeCount: 	0,
 
 		fun: fun,
-		arg: make(chan interface{}, max),
+		arg: make(chan interface{}, 1<<6),
 
 		//idle:  		.setTimeout(),
 		//idleTicker: 	.setTimeout(),
@@ -123,8 +114,59 @@ func NewPool(min, max uint, timeout time.Duration, fun func(interface{})) (o *Po
 	// init min, max
 	o.setCount(min, max)
 	// init idle, idleTicker
-	o.setTimeout(timeout)
+	o.setTimeout(idleTimeout)
 	return
+}
+
+// Change how many goroutines Pool can create.
+func (o *Pool) setCount(min, max uint) {
+	if max > math.MaxInt32 {
+		panic(fmt.Errorf("max:%v > math.MaxInt32, want <= math.MaxInt32", max))
+	}
+	if min > max {
+		panic(fmt.Errorf("min:%v > max:%v, want min <= max", min, max))
+	}
+	atomic.StoreInt32(&o.min, int32(min))
+	atomic.StoreInt32(&o.max, int32(max))
+
+	for n := o.getMin() - o.getCur(); n > 0; n-- {
+		o.newWorker()
+	}
+}
+
+// A goroutine will be killed after idle for <idle> ns.
+// idle: idle forever if <= 0
+func (o *Pool) setTimeout(idle time.Duration) {
+	atomic.StoreInt64((*int64)(&o.idle), idle.Nanoseconds())
+
+	// destroy old ticker
+	if o.idleTicker != nil {
+		o.idleTicker.Stop()
+		o.idleTicker = nil
+	}
+	if o.idle > 0 {
+		//o.wg.Add(1)
+		ticker := time.NewTicker(o.idle)
+		o.idleTicker = NewSvc(nil, func() {
+			ticker.Stop()
+			//o.wg.Done()
+		}, func() {
+			<-ticker.C
+
+			// stop 1/2 idle workers
+			n := o.getFreeCount() / 2
+			if maxSignal := atomic.LoadInt32(&o.maxSignal); n > maxSignal {
+				n = maxSignal
+			}
+			for ; n > 0; n-- {
+				select {
+				case o.arg <- poolTimeoutSignal:
+				default:
+					return
+				}
+			}
+		})
+	}
 }
 
 // Create a new worker goroutine.
@@ -158,6 +200,10 @@ func (o *Pool) newWorker() {
 		for ; ; o.incFreeCount() {
 			arg := <-o.arg
 			o.decFreeCount()
+
+			if o.getCur() < o.getMax() && o.getFreeCount() < 1 {
+				o.newWorker()
+			}
 
 			switch arg {
 			case poolTimeoutSignal:
@@ -194,18 +240,15 @@ func (o *Pool) newWorker() {
 func (o *Pool) Stop() {
 	o.stopOnce.Do(func() {
 		o.setCount(0, 0)
+		o.setTimeout(0)
+		atomic.StoreInt32(&o.maxSignal, math.MaxInt32)
 		atomic.StoreInt32(&o.defaultLife, 1) // stop immediately when receive a timeout-signal
-
-		if o.idleTicker != nil {
-			o.idleTicker.Stop()
-			o.idleTicker = nil
-		}
 
 		o.wg.Add(1)
 		go func() {
 			defer o.wg.Done()
 			for o.getCur() > 0 {
-				time.Sleep(_POOL_STOP_DELAY)
+				time.Sleep(100 * time.Millisecond)
 				for freeCount := o.getFreeCount(); freeCount > 0; freeCount-- {
 					select {
 					case o.arg <- poolTimeoutSignal:
@@ -222,76 +265,7 @@ func (o *Pool) Wait() {
 }
 
 func (o *Pool) Call(arg interface{}) {
-CALL:
-	switch {
-	case o.getMax() <= 0: // stopped?
-		// nop
-	case o.getCur() >= o.getMax():
+	if o.getMax() > 0 {
 		o.arg <- arg
-	default:
-		select {
-		case o.arg <- arg:
-			if o.getFreeCount() <= 0 { // NOTE: the check isn't reliable
-				o.newWorker()
-			}
-		default:
-			// NOTE: Call() may create more than 1 worker
-			o.newWorker()
-			goto CALL
-		}
-	}
-}
-
-// Change when to kill a goroutine.
-// A goroutine will be killed after idle for <idle> ns.
-// idle: idle forever if <= 0
-func (o *Pool) setTimeout(idle time.Duration) {
-	atomic.StoreInt64((*int64)(&o.idle), idle.Nanoseconds())
-
-	// destroy old ticker
-	if o.idleTicker != nil {
-		o.idleTicker.Stop()
-		o.idleTicker = nil
-	}
-	if o.idle > 0 {
-		o.wg.Add(1)
-		ticker := time.NewTicker(o.idle)
-		o.idleTicker = NewSvc(nil, func() {
-			ticker.Stop()
-			o.wg.Done()
-		}, func() {
-			<-ticker.C
-
-			// stop idle workers
-			n := o.getFreeCount()
-			if n > o.getMaxSignal() {
-				n = o.getMaxSignal()
-			}
-			for ; n > 0; n-- {
-				select {
-				case o.arg <- poolTimeoutSignal:
-				default:
-					return
-				}
-			}
-		})
-	}
-}
-
-// Change how many goroutines Pool can create.
-func (o *Pool) setCount(min uint, max uint) {
-	if min > math.MaxInt32 {
-		panic(fmt.Errorf("min:%v > math.MaxInt32, want <= math.MaxInt32", min))
-	}
-	if max > math.MaxInt32 {
-		panic(fmt.Errorf("max:%v > math.MaxInt32, want <= math.MaxInt32", max))
-	}
-	if min > max {
-		panic(fmt.Errorf("min:%v > max:%v, want min <= max", min, max))
-	}
-	atomic.StoreInt32(&o.min, int32(min))
-	atomic.StoreInt32(&o.max, int32(max))
-	for n := o.getMin() - o.getCur(); n > 0; n-- {
-		o.newWorker()
 	}
 }

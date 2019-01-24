@@ -1,7 +1,6 @@
 package gosvc
 
 import (
-	"math"
 	"math/rand"
 	"runtime"
 	"testing"
@@ -95,16 +94,17 @@ func TestPool_Stop(t *testing.T) {
 	}
 }
 
-func TestPool_Call_NoDelay(t *testing.T) {
-	t.Skipf(".Call() may start more than 1 worker")
-	// goroutine number at start
-	ngo0 := runtime.NumGoroutine()
+func TestPool_Wait(t *testing.T) {
+	o := NewPool(1, 1<<20, time.Second, func(interface{}) {})
+	c := make(chan struct{})
+	NewSvc(func() {
+		c <- struct{}{}
+	}, nil, func() {
+		o.Call(nil)
+	})
+	<-c
+	time.Sleep(100 * time.Millisecond)
 
-	o := NewPool(0, math.MaxUint8, time.Hour, func(interface{}) {})
-	o.Call(nil)
-
-	// check
-	if d := runtime.NumGoroutine() - ngo0; d > 1 {
-		t.Errorf("%v workers started, want 1", d)
-	}
+	o.Stop()
+	o.Wait()
 }
