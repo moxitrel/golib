@@ -11,12 +11,12 @@ import (
 func TestSvc_State(t *testing.T) {
 	o := NewSvc(nil, nil, func() {})
 
-	// state = ST_STOPPED when new
+	// state = ST_RUNNING when created
 	if o.State() != ST_RUNNING {
 		t.Errorf("state != ST_RUNNING")
 	}
 
-	// state = ST_STOPPED when .Stop()
+	// state = ST_STOPPED after .Stop()
 	o.Stop()
 	if o.State() != ST_STOPPED {
 		t.Errorf("state != ST_STOPPED")
@@ -31,8 +31,6 @@ func TestSvc_DataRace(t *testing.T) {
 				o.State()
 			}
 		}()
-	}
-	for i := 0; i < 2; i++ {
 		go func() {
 			for {
 				o.Stop()
@@ -55,11 +53,10 @@ func BenchmarkSvc_SwitchTest(b *testing.B) {
 		case ST_RUNNING:
 			do()
 		case ST_STOPPED:
-			goto DO_EXIT
+			return
 		default:
-			panic(fmt.Sprintf("invalid state:%v", o.State()))
+			panic(fmt.Errorf("state:%v isn't valid", o.State()))
 		}
-	DO_EXIT:
 	}
 }
 

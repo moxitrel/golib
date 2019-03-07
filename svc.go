@@ -12,7 +12,7 @@ import (
 	"sync/atomic"
 )
 
-// Extend goroutine with state reference.
+// goroutine with state
 type Svc struct {
 	state int32
 }
@@ -25,11 +25,11 @@ const (
 	ST_NA // not available
 )
 
-// Start a new goroutine loop running do().
+// Create a goroutine loop running do().
 //
-// pre: run once before start.
-// post: run once after stop.
-// do: loop do() when running.
+// pre : run once before start.
+// post: run once after  stop.
+// do  : loop do() if running.
 func NewSvc(pre func(), post func(), do func()) (o *Svc) {
 	o = &Svc{
 		state: ST_RUNNING,
@@ -52,12 +52,11 @@ func NewSvc(pre func(), post func(), do func()) (o *Svc) {
 				case ST_RUNNING:
 					do()
 				case ST_STOPPED:
-					goto DO_END
+					return
 				default:
-					panic(fmt.Errorf("state:%v isn't valid.", o.State()))
+					panic(fmt.Errorf("state:%v isn't valid", o.State()))
 				}
 			}
-		DO_END:
 		}
 	}()
 	return
