@@ -3,11 +3,11 @@ A goroutine pool.
 #+BEGIN_SRC go
 import "github.com/moxitrel/gosvc"
 
-// make a new goroutine pool
-// min: at least 3  workers live all the time
-// max: at most 100 workers can be created
-// timeout : terminate the workers which idle for 1 minutes
-// dhandler: handle the submitted task
+// Make a new goroutine pool
+// min    : at least 3  workers live all the time
+// max    : at most 100 workers can be created
+// timeout: terminate the workers which idle for 1 minutes
+// handler: handle the submitted task
 pool := gosvc.NewWorkerPool(
     /* min     */ 3,
     /* max     */ 100,
