@@ -26,7 +26,7 @@ cd $(dirname $0)
 
 # When invoking the generated test binary (the result of 'go test -c') directly, the 'test.' prefix is mandatory.
 cmd=" go test               "   # 默认测试 pkg in current directory
-cmd="$cmd -race             "   # enable data race detection
+cmd=" $cmd -race             "  # enable data race detection
 cmd=" $cmd -vet -all        "   # run "go vet $VET_FLAGS" during test
 cmd=" $cmd -failfast        "   # exit if one of tests failed
 

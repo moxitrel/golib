@@ -73,7 +73,7 @@ func TestPool_Stop(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	min := rand.Intn(8000)
 	timeout := time.Second + time.Duration(rand.Int31())
-	o := NewPool(uint(min), uint(min), timeout, func(interface{}) {})
+	o := NewWorkerPool(uint(min), uint(min), timeout, func(interface{}) {})
 	t.Logf("ngo / min: %v / %v", runtime.NumGoroutine()-ngo0, min)
 
 	// stop pool
@@ -95,12 +95,12 @@ func TestPool_Stop(t *testing.T) {
 }
 
 func TestPool_Wait(t *testing.T) {
-	o := NewPool(1, 1<<20, time.Second, func(interface{}) {})
+	o := NewWorkerPool(1, 1<<20, time.Second, func(interface{}) {})
 	c := make(chan struct{})
 	NewSvc(func() {
 		c <- struct{}{}
 	}, nil, func() {
-		o.Call(nil)
+		o.Submit(nil)
 	})
 	<-c
 	time.Sleep(100 * time.Millisecond)

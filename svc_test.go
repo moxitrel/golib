@@ -16,7 +16,7 @@ func TestSvc_State(t *testing.T) {
 		t.Errorf("state != ST_RUNNING")
 	}
 
-	// state = ST_STOPPED when .Stop()
+	// state = ST_STOPPED after .Stop()
 	o.Stop()
 	if o.State() != ST_STOPPED {
 		t.Errorf("state != ST_STOPPED")
@@ -53,11 +53,10 @@ func BenchmarkSvc_SwitchTest(b *testing.B) {
 		case ST_RUNNING:
 			do()
 		case ST_STOPPED:
-			goto DO_EXIT
+			return
 		default:
-			panic(fmt.Sprintf("invalid state:%v", o.State()))
+			panic(fmt.Errorf("state:%v isn't valid", o.State()))
 		}
-	DO_EXIT:
 	}
 }
 

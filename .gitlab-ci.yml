@@ -1,12 +1,4 @@
-image: registry.gitlab.com/moxitrel/golib
-
-
-variables:
-  CI_PROJECT_DIR: /go/src/github.com/moxitrel/golib    # set project root, default cloned into "/builds/<user>/<repo>"
-
-
-before_script:
-  - "./depend.sh"   # install dependency
+image: "golang:alpine"
 
 static_analysis:
   script:

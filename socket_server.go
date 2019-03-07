@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net"
 	"sync"
 	"time"
@@ -29,11 +30,10 @@ go srv.Serve(func(bytes []byte, conn net.Conn) int {
 type ServeMixin struct {
 	net.Listener
 
-	Timeout    time.Duration // disconnect client when timeout
-	BufferSize int           // set recv buffer size
+	Timeout    time.Duration 	// disconnect client when timeout
+	BufferSize uint        		// set recv buffer size
 
-	bufferPool *sync.Pool // recv buffer
-	handler    *Pool
+	bufferPool *sync.Pool 		// recv buffer
 }
 
 const _DEFAULT_BUFFER_SIZE = 1 << 16
@@ -71,7 +71,7 @@ func (o *ServeMixin) Serve(callback func([]byte, net.Conn) int) error {
 		}
 	}
 
-	o.handler = NewPool(3, 1<<20, 3*time.Minute, func(arg interface{}) {
+	handler := NewWorkerPool(2, math.MaxUint32, time.Minute, func(arg interface{}) {
 		conn := arg.(net.Conn)
 		defer func() {
 			logIfError(conn.Close())
@@ -80,38 +80,45 @@ func (o *ServeMixin) Serve(callback func([]byte, net.Conn) int) error {
 		//
 		// handle connection
 		//
+
+		// make receive buffer
 		buffer := o.bufferPool.Get().([]byte)
 		defer o.bufferPool.Put(buffer)
 
-		for i := 0; 0 <= i && i <= o.BufferSize; {
+		for i := 0; 0 <= i && uint(i) <= o.BufferSize; {
+			// receive data
 			logIfError(conn.SetReadDeadline(time.Now().Add(o.Timeout)))
 			n, err := conn.Read(buffer[i:])
 			logIfError(conn.SetReadDeadline(time.Time{}))
+
+			// handle received bytes
 			if n > 0 {
 				i = callback(buffer[:i+n], conn)
 			}
 
-			//
 			// handle read error
-			//
-			if err == io.EOF { // connection closed
+			if err == io.EOF { // connection closed by client
 				i = -1
-			} else if err, ok := err.(net.Error); ok && err.Timeout() { // timeout
+			} else if err, ok := err.(net.Error); ok && err.Timeout() { // read timeout
 				i = -1
-			} else {
+			} else { // other errors
 				i = -1
-				logIfError(err)
+				log.Println(err)
 			}
 		}
 	})
 
 	for {
+		// wait for clients to connect
 		conn, err := o.Listener.Accept()
 		if err != nil {
-			o.handler.Stop()
+			handler.Stop()
+			handler.Wait()
 			return err
 		}
-		o.handler.Call(conn)
+
+		// handle connection in a new coroutine
+		handler.Submit(conn)
 	}
 }
 

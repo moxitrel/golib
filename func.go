@@ -1,45 +1,45 @@
 /*
 
-NewApply size fun -> *Apply : loop processing fun(arg) in a new goroutine
+NewFunc size fun -> *Func : loop processing fun(arg) in a new goroutine
+	.Call arg		: send arg to process
 	.Stop			: signal the service to stop
 	.Wait			: wait until stopped
-	.Call arg		: send ^arg to service to process
-	.State -> Int	: return the current running state
 
 */
 package gosvc
 
 import (
 	"fmt"
+	"sync"
 	"time"
 )
 
-type Apply struct {
-	*Loop
+type Func struct {
+	*Svc
 	args chan interface{} // argument buffer
+	wg sync.WaitGroup
 }
 
 type _FuncStopSignal struct{}
-
-var funcStopSignal = _FuncStopSignal{}
 
 // Loop running fun(arg) in a new goroutine.
 //
 // argsCap: the max number of argument can be buffered.
 // fun: panic if nil.
-func NewApply(argsCap uint, fun func(interface{})) (o *Apply) {
+func NewFunc(argsCap uint, fun func(interface{})) (o *Func) {
 	if fun == nil {
 		panic(fmt.Errorf("fun == nil, want !nil"))
 	}
 
-	o = &Apply{
+	o = &Func{
 		args: make(chan interface{}, argsCap),
 	}
-	o.Loop = NewLoop(func() {
+	o.wg.Add(1)
+	o.Svc = NewSvc(nil, o.wg.Done, func() {
 		var arg interface{}
 		for arg = range o.args {
 			switch arg {
-			case funcStopSignal:
+			case _FuncStopSignal{}:
 				goto HANDLE_STOP
 			default:
 				fun(arg)
@@ -47,14 +47,14 @@ func NewApply(argsCap uint, fun func(interface{})) (o *Apply) {
 		}
 
 	HANDLE_STOP:
-		o.Loop.Stop()
+		o.Svc.Stop()
 		stopTimer := NewTimer()
 		// continue to handle delivered args when .Stop(), or client may be blocked
 		for {
 			select {
 			case arg = <-o.args:
 			default:
-				stopTimer.Start(200 * time.Millisecond)
+				stopTimer.Start(100 * time.Millisecond)
 				select {
 				case arg = <-o.args:
 				case <-stopTimer.C: // quit if timeout
@@ -63,7 +63,7 @@ func NewApply(argsCap uint, fun func(interface{})) (o *Apply) {
 				stopTimer.Stop()
 			}
 
-			if arg != funcStopSignal {
+			if arg != (_FuncStopSignal{}) {
 				fun(arg)
 			}
 		}
@@ -71,16 +71,21 @@ func NewApply(argsCap uint, fun func(interface{})) (o *Apply) {
 	return
 }
 
-// Signal service to exit. May not stop immediately.
-func (o *Apply) Stop() {
-	if o.State() != ST_STOPPED {
-		o.args <- funcStopSignal
-	}
-}
-
-// Send ^arg to process
-func (o *Apply) Call(arg interface{}) {
+// Submit arg.
+func (o *Func) Call(arg interface{}) {
 	if o.State() == ST_RUNNING {
 		o.args <- arg
 	}
+}
+
+// Signal service to exit. May not stop immediately.
+func (o *Func) Stop() {
+	if o.State() != ST_STOPPED {
+		o.args <- _FuncStopSignal{}
+	}
+}
+
+// Block current goroutine until stopped.
+func (o *Func) Wait() {
+	o.wg.Wait()
 }

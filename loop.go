@@ -22,7 +22,7 @@ type Loop struct {
 //
 // If thunk is nil, stop immediately.
 func NewLoop(thunk func()) (o *Loop) {
-	o = new(Loop)
+	o = &Loop{}
 	o.wg.Add(1)
 	o.Svc = NewSvc(
 		nil,
